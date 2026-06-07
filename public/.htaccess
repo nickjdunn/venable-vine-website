@@ -12,3 +12,6 @@
 <FilesMatch "\.(sql|md|example\.php)$">
     Require all denied
 </FilesMatch>
+
+# Disable directory listings site-wide
+Options -Indexes

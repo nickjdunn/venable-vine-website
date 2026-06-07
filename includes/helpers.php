@@ -394,7 +394,9 @@ function block_preview_text(array $block): string
         'hero' => (string) ($c['title'] ?? 'Hero Banner'),
         'story' => (string) ($c['title'] ?? 'Story'),
         'title' => (string) ($c['text'] ?? 'Title'),
-        'text' => mb_substr(strip_tags((string) ($c['content'] ?? 'Text block')), 0, 60),
+        'text' => function_exists('mb_substr')
+            ? mb_substr(strip_tags((string) ($c['content'] ?? 'Text block')), 0, 60)
+            : substr(strip_tags((string) ($c['content'] ?? 'Text block')), 0, 60),
         'image' => basename((string) ($c['src'] ?? 'Image')),
         'button' => (string) ($c['text'] ?? 'Button'),
         'menu_category' => (string) ($c['title'] ?: 'Menu Category'),
@@ -410,9 +412,15 @@ function block_preview_text(array $block): string
     };
 }
 
-function parse_json_config(?string $json): array
+function parse_json_config(mixed $json): array
 {
     if (!$json) {
+        return [];
+    }
+    if (is_array($json)) {
+        return $json;
+    }
+    if (!is_string($json)) {
         return [];
     }
     $data = json_decode($json, true);

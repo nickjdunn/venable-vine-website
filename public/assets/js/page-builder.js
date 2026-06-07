@@ -18,22 +18,48 @@ document.addEventListener('DOMContentLoaded', () => {
     function uid(prefix) { return `${prefix}_${Date.now()}_${uid.counter++}`; }
 
     async function load() {
-        const res = await fetch('/api/page-builder.php?action=get_builder_data');
-        builderData = await res.json();
-        if (!builderData.success) {
-            setStatus(builderData.message || 'Load failed', 'error');
-            return;
+        try {
+            const { data } = await apiFetch('/api/page-builder.php?action=get_builder_data');
+            builderData = data;
+            if (!builderData.success) {
+                showLoadError(builderData.message || 'Load failed');
+                return;
+            }
+            layouts.desktop = builderData.layout_desktop?.rows?.length
+                ? builderData.layout_desktop
+                : { rows: [] };
+            layouts.mobile = builderData.layout_mobile?.rows?.length
+                ? builderData.layout_mobile
+                : mobileFromDesktop(layouts.desktop);
+            mobileCustomized = !!builderData.mobile_persisted;
+            renderPalette();
+            updateViewportUI();
+            renderCanvas();
+        } catch (err) {
+            showLoadError(err.message || 'Could not load page builder');
         }
-        layouts.desktop = builderData.layout_desktop?.rows?.length
-            ? builderData.layout_desktop
-            : { rows: [] };
-        layouts.mobile = builderData.layout_mobile?.rows?.length
-            ? builderData.layout_mobile
-            : mobileFromDesktop(layouts.desktop);
-        mobileCustomized = !!builderData.mobile_persisted;
-        renderPalette();
-        updateViewportUI();
-        renderCanvas();
+    }
+
+    async function apiFetch(url, options = {}) {
+        if (window.adminApiFetch) {
+            return window.adminApiFetch(url, options);
+        }
+        const res = await fetch(url, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...(options.headers || {}) },
+            ...options,
+        });
+        const data = await res.json();
+        return { res, data };
+    }
+
+    function showLoadError(message) {
+        setStatus(message, 'error');
+        canvas.innerHTML = `<div class="pb-empty">
+            <p><strong>Page Builder failed to load</strong></p>
+            <p>${esc(message)}</p>
+            <p><a href="/admin/debug.php">Open Debug Log</a> for details.</p>
+        </div>`;
     }
 
     function mobileFromDesktop(desktop) {
@@ -300,8 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="pb-section-type">${esc(label)}</span>
                 <label class="pb-block-active"><input type="checkbox" ${block.active ? 'checked' : ''}> Visible</label>
             </div>
-            <div class="pb-section-preview">${esc(preview)}</div>
-            <div class="pb-section-preview-frame" data-preview-for="${escAttr(block.id)}"></div>`;
+            <div class="pb-section-preview">${esc(preview)}</div>`;
         el.addEventListener('click', (e) => {
             if (e.target.type === 'checkbox') return;
             selectBlock(rowId, colId, block.id);
@@ -310,23 +335,26 @@ document.addEventListener('DOMContentLoaded', () => {
             block.active = e.target.checked;
             el.classList.toggle('inactive', !block.active);
         });
-        loadBlockPreview(block, el.querySelector('[data-preview-for]'));
         return el;
     }
 
     async function loadBlockPreview(block, container) {
         if (!container) return;
+        container.innerHTML = '<p class="pb-hint">Loading preview…</p>';
         try {
-            const res = await fetch('/api/page-builder.php?action=preview_block', {
+            const { data } = await apiFetch('/api/page-builder.php?action=preview_block', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN },
                 body: JSON.stringify({ block, _csrf: window.CSRF_TOKEN }),
             });
-            const data = await res.json();
             if (data.success && data.html) {
                 container.innerHTML = data.html;
+            } else {
+                container.innerHTML = '<p class="pb-hint">Preview unavailable.</p>';
             }
-        } catch (_) { /* preview optional */ }
+        } catch (_) {
+            container.innerHTML = '<p class="pb-hint">Preview failed.</p>';
+        }
     }
 
     function renderBlockChip(block, rowId, colId) {
@@ -494,7 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `<div class="form-actions">
             <button type="submit" class="btn btn-sm">Apply Changes</button>
             <button type="button" class="btn btn-sm btn-danger" id="delete-block-btn">Delete Block</button>
-        </div></form>`;
+        </div>
+        <div class="pb-inspector-preview"><h4>Live Preview</h4><div id="inspector-preview-frame" class="pb-section-preview-frame"></div></div></form>`;
         return html;
     }
 
@@ -519,6 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelectorAll('input[type=checkbox]').forEach((cb) => { block.config[cb.name] = cb.checked; });
             setStatus('Changes applied — click Save Page when ready', 'success');
             renderCanvas();
+            loadBlockPreview(block, document.getElementById('inspector-preview-frame'));
         });
         form?.querySelectorAll('[data-media-picker]').forEach((field) => {
             window.MediaPicker?.bindField(field);
@@ -539,6 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
             inspector.innerHTML = '<p class="pb-hint">Click a section or block to edit it here.</p>';
             renderCanvas();
         });
+        loadBlockPreview(block, document.getElementById('inspector-preview-frame'));
     }
 
     document.getElementById('add-column-row-btn')?.addEventListener('click', () => {
@@ -572,12 +603,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setStatus('Saving desktop & mobile layouts...', '');
         try {
             for (const vp of ['desktop', 'mobile']) {
-                const res = await fetch('/api/page-builder.php?action=save_layout', {
+                const { data } = await apiFetch('/api/page-builder.php?action=save_layout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN },
                     body: JSON.stringify({ viewport: vp, layout: layouts[vp], _csrf: window.CSRF_TOKEN }),
                 });
-                const data = await res.json();
                 if (!data.success) throw new Error(data.message);
             }
             mobileCustomized = true;

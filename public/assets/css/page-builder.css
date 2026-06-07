@@ -82,6 +82,20 @@
 .pb-gallery-thumb { aspect-ratio: 1; border-radius: 4px; overflow: hidden; }
 .pb-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
+.pb-inspector-preview { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; }
+.pb-inspector-preview h4 { font-size: 0.9rem; margin: 0 0 0.5rem; }
+
+/* Debug admin page */
+.debug-list { list-style: none; padding: 0; margin: 0; }
+.debug-list li { padding: 0.35rem 0; border-bottom: 1px solid #eee; }
+.debug-ok { color: #166534; }
+.debug-fail { color: #b91c1c; }
+.debug-log, .debug-pre {
+    background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 6px;
+    max-height: 400px; overflow: auto; font-size: 0.78rem; line-height: 1.45;
+    white-space: pre-wrap; word-break: break-word;
+}
+
 @media (max-width: 1200px) {
     .pb-layout { grid-template-columns: 1fr; }
     .pb-row-cols { grid-template-columns: 1fr; }

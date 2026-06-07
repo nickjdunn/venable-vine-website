@@ -50,6 +50,9 @@ class Auth
     public static function requireLogin(): void
     {
         if (!self::check()) {
+            if (Logger::wantsJsonResponse() || Logger::isApiRequest()) {
+                json_response(['success' => false, 'message' => 'Session expired. Please log in again.'], 401);
+            }
             redirect('/admin/login.php');
         }
     }

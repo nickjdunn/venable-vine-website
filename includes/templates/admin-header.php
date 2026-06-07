@@ -41,6 +41,7 @@ $user = Auth::user();
     ];
     if (Auth::isOwner()) {
         $nav['/admin/users.php'] = 'Users';
+        $nav['/admin/debug.php'] = 'Debug';
     }
     $nav['/admin/ordering.php'] = 'Ordering (Soon)';
     $current = $_SERVER['SCRIPT_NAME'] ?? '';

@@ -3,6 +3,8 @@ config/.installed
 config/app.php
 public/uploads/*
 !public/uploads/.gitkeep
+logs/*
+!logs/.gitkeep
 *.log
 Legacy_Venable_Vine_Website/error_log
 .DS_Store

@@ -8,6 +8,7 @@ header('Content-Type: application/json');
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $page = PageRepository::getBySlug('home');
 if (!$page) {
+    Logger::error('Page builder: home page not found');
     json_response(['success' => false, 'message' => 'Home page not found'], 404);
 }
 $pageId = (int) $page['id'];
@@ -32,21 +33,25 @@ function fix_layout_image_paths(array $layout): array
 
 function seed_media_and_settings(): void
 {
-    $defaults = default_brand_images();
-    MediaRepository::syncFromDisk();
+    try {
+        $defaults = default_brand_images();
+        MediaRepository::syncFromDisk();
 
-    $logo = resolve_image_path(Settings::get('logo_path') ?: $defaults['logo']);
-    $favicon = resolve_image_path(Settings::get('favicon_path') ?: $defaults['favicon']);
-    Settings::set('logo_path', $logo);
-    Settings::set('favicon_path', $favicon);
+        $logo = resolve_image_path(Settings::get('logo_path') ?: $defaults['logo']);
+        $favicon = resolve_image_path(Settings::get('favicon_path') ?: $defaults['favicon']);
+        Settings::set('logo_path', $logo);
+        Settings::set('favicon_path', $favicon);
 
-    if (!MediaRepository::all()) {
-        foreach (list_asset_images() as $path) {
-            MediaRepository::create($path, [
-                'display_name' => pathinfo($path, PATHINFO_FILENAME),
-                'alt_text' => 'Venable & Vine',
-            ]);
+        if (!MediaRepository::all()) {
+            foreach (list_asset_images() as $path) {
+                MediaRepository::create($path, [
+                    'display_name' => pathinfo($path, PATHINFO_FILENAME),
+                    'alt_text' => 'Venable & Vine',
+                ]);
+            }
         }
+    } catch (Throwable $e) {
+        Logger::exception($e, ['context' => 'seed_media_and_settings']);
     }
 }
 
@@ -72,7 +77,8 @@ try {
 
     if ($action === 'preview_block' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         Csrf::requireValid();
-        $block = json_decode(file_get_contents('php://input'), true);
+        $payload = json_decode(file_get_contents('php://input'), true);
+        $block = is_array($payload) ? ($payload['block'] ?? $payload) : null;
         if (!is_array($block) || empty($block['type'])) {
             json_response(['success' => false, 'message' => 'Invalid block'], 400);
         }
@@ -110,5 +116,6 @@ try {
         default => json_response(['success' => false, 'message' => 'Unknown action'], 400),
     };
 } catch (Throwable $e) {
+    Logger::exception($e, ['context' => 'page_builder_api', 'action' => $action]);
     json_response(['success' => false, 'message' => $e->getMessage()], 500);
 }

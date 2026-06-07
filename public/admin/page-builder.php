@@ -9,7 +9,7 @@ if (!$page) {
     redirect('/admin/dashboard.php');
 }
 
-$extraAdminCss = [asset('css/style.css'), asset('css/page-builder.css')];
+$extraAdminCss = [asset('css/page-builder.css')];
 $extraAdminJs = [
     'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
     asset('js/page-builder.js'),

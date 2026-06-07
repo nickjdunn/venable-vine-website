@@ -77,8 +77,15 @@ class PageRepository
             if ($sections) {
                 return normalize_layout(default_layout_from_sections($sections));
             }
+            return empty_layout();
         }
-        $desktop = self::getLayout($pageId, 'desktop');
+        $desktop = self::getStoredLayout($pageId, 'desktop');
+        if (empty($desktop['rows'])) {
+            $sections = self::getSections($pageId);
+            if ($sections) {
+                $desktop = normalize_layout(default_layout_from_sections($sections));
+            }
+        }
         if (!empty($desktop['rows'])) {
             return mobile_layout_from_layout($desktop);
         }

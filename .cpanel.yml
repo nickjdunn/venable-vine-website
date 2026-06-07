@@ -2,7 +2,7 @@
 # Deploys website files to public_html (web root) and app code to ~/includes + ~/config
 deployment:
   tasks:
-    - /bin/mkdir -p $HOME/public_html/uploads $HOME/includes $HOME/config $HOME/sql
+    - /bin/mkdir -p $HOME/public_html/uploads $HOME/includes $HOME/config $HOME/sql $HOME/logs
     - /bin/rsync -av --delete --exclude 'uploads/' ./public/ $HOME/public_html/
     - /bin/rsync -av --delete ./includes/ $HOME/includes/
     - /bin/rsync -av --exclude 'database.php' --exclude '.installed' --exclude 'app.php' ./config/ $HOME/config/
