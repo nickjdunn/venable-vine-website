@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Venable & Vine | Freshly Squeezed. Family Made.</title>
+    <link rel="icon" type="image/x-icon" href="/images_webp/JamIcon.webp">
+    <meta name="description" content="Venable & Vine is a family-owned food truck serving fresh muddled lemonades, frozen candied fruits, and homemade jams & honey.">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    
+    <style>
+        #reviews { background-color: var(--background-cream); }
+        .reviews-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .review-card { background-color: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.07); border-top: 4px solid var(--primary-yellow); display: flex; flex-direction: column; }
+        .review-card .stars { color: var(--primary-yellow); font-size: 1.5rem; }
+        .review-card .text { font-style: italic; margin: 1rem 0; flex-grow: 1; }
+        .review-card .author { font-weight: bold; text-align: right; }
+        .contact-container { padding: 4rem 2rem; max-width: 800px; margin: auto; text-align: center; }
+        .contact-container p { margin-bottom: 2.5rem; }
+        .choice-buttons { display: flex; gap: 1rem; justify-content: center; margin-bottom: 3rem; }
+        .choice-btn { padding: 1rem 2rem; font-size: 1.1rem; font-weight: 700; cursor: pointer; border: 2px solid var(--secondary-gold); background-color: white; color: var(--secondary-gold); border-radius: 50px; transition: all 0.3s ease; }
+        .choice-btn.active, .choice-btn:hover { background-color: var(--secondary-gold); color: white; }
+        .form-container { display: none; text-align: left; }
+        .form-container.active { display: block; }
+        .form-container label { font-weight: bold; margin-top: 1rem; }
+        .form-container input, .form-container textarea { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        .submit-btn { background-color: var(--accent-green); color: white; font-size: 1.1rem; padding: 1rem 2.5rem; border-radius: 50px; border: none; cursor: pointer; }
+        .rating { display: flex; flex-direction: row-reverse; justify-content: center; gap: 0.5rem; }
+        .rating input { display: none; }
+        .rating label { font-size: 2.5rem; color: #ccc; cursor: pointer; transition: color 0.2s; }
+        .rating input:checked ~ label, .rating label:hover, .rating label:hover ~ label { color: var(--primary-yellow); }
+        .g-recaptcha { display: inline-block; }
+        .success { color: var(--accent-green); }
+        .error { color: #DC2626; }
+        .form-actions-centered { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; margin-top: 1.5rem; }
+        .form-status { margin-top: 1.5rem; font-weight: bold; min-height: 1.2em; text-align: center; }
+        
+        .lightbox { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        .lightbox-content { max-width: 90%; max-height: 80%; }
+        .close-lightbox { position: absolute; top: 20px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header class="header"> <a href="#" class="logo-link"> <img src="images_webp/VenableandVineLogo.webp" alt="Venable & Vine Logo" class="logo-img"> </a> <nav class="nav-links"> <a href="#menu">Menu</a> <a href="#story">Our Story</a> <a href="#gallery">Gallery</a> <a href="#reviews">Reviews</a> <a href="#contact">Contact</a> </nav> </header>
+
+    <main>
+        <section class="hero">
+            <img src="images_webp/VenableandVineLogo.webp" alt="Venable & Vine Logo" class="logo-img-display">
+            <h1 id="hero-title">Freshly Squeezed. Family Made.</h1>
+            <div id="hero-subtitle">Handcrafted lemonades, sweet treats, and honey straight from our hives. Made with love, for you.</div>
+            <a href="#find-us" class="cta-button">Find The Truck Today</a>
+        </section>
+        
+        <section id="menu">
+            <div class="container">
+                <h2 id="menu-title">Taste the Sunshine</h2>
+                <div class="menu-grid" id="menu-grid-container"></div>
+                <div class="coming-soon-box">
+                    <h3 id="coming-soon-title">Coming Soon!</h3>
+                    <div id="coming-soon-text">Get ready for authentic Agua Frescas, classic Fresas con Crema, and our signature Snowflake Refreshers.</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="story">
+            <div class="container">
+                <h2 id="story-title">From Our Family to Yours</h2>
+                <div class="story-content">
+                    <div class="story-text">
+                        <div id="story-p1">Venable & Vine started around our kitchen table, with a love for simple, real ingredients. Our kids loved the fresh-squeezed lemonade we'd make on hot summer days, and we loved the honey from the hives buzzing in our backyard. We thought, why not share this?</div>
+                        <div id="story-p2">Every drink is muddled right in front of you. The 'Vine' in our name represents the fresh fruit we use, and 'Venable' is our family name—a promise of quality and care in everything we serve. We're proud to be family-owned and operated, and we can't wait to share a little piece of our home with you.</div>
+                    </div>
+                    <div class="story-image">
+                        <img id="story-image" src="images_webp/FoodTruckPicture.webp" alt="The Venable & Vine Food Truck.">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gallery" class="container"><h2 id="gallery-title">A Glimpse of Our Goodness</h2><div class="gallery-grid" id="gallery-grid-container"><p style="text-align: center; grid-column: 1 / -1;">Loading photos...</p></div></section>
+        <section id="reviews"><div class="container"><h2 id="reviews-title">What Our Customers Say</h2><div id="reviews-grid" class="reviews-grid"><p style="text-align: center; grid-column: 1 / -1;">Loading reviews...</p></div></div></section>
+        <section id="find-us" class="container"><h2 id="findus-title">Where to Find Us</h2><div id="events-list"></div><p id="findus-text" style="margin-top: 2rem;">For all other news, follow us on Facebook!</p><a id="facebook-button" href="https://www.facebook.com/profile.php?id=61578166736407" target="_blank" rel="noopener noreferrer" class="cta-button"> Visit our Facebook Page </a></section>
+        <section id="contact">
+            <div class="contact-container">
+                <h2>Get In Touch</h2>
+                <p>We would love to hear from you!</p>
+                <div class="choice-buttons">
+                    <button id="show-contact-btn" class="choice-btn active" data-form="contact-form">Contact Us</button>
+                    <button id="show-review-btn" class="choice-btn" data-form="review-form">Leave a Review</button>
+                </div>
+                <div id="review-form" class="form-container">
+                    <form id="submit-review-form">
+                        <input type="hidden" name="formType" value="Review">
+                        <div style="text-align:left;">
+                            <label for="review-name">Your Name:</label>
+                            <input type="text" id="review-name" name="name" placeholder="e.g., Jane D." required>
+                            <label>Your Rating:</label>
+                            <div class="rating"><input type="radio" id="star5" name="rating" value="5" required><label for="star5">★</label><input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label><input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label><input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label><input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label></div>
+                            <label for="review-text">Your Review:</label>
+                            <textarea id="review-text" name="review" rows="5" placeholder="Tell us what you think!" required></textarea>
+                        </div>
+                        <div class="form-actions-centered">
+                            <div class="g-recaptcha" data-sitekey="6LcfarMrAAAAAOxEjQkkCs8qErKsGFW5eud9nQGZ"></div>
+                            <button type="submit" class="submit-btn">Submit Review</button>
+                        </div>
+                        <p class="form-status"></p>
+                    </form>
+                </div>
+                <div id="contact-form" class="form-container active">
+                    <form id="submit-contact-form">
+                        <input type="hidden" name="formType" value="Contact">
+                         <div style="text-align:left;">
+                            <label for="contact-name">Your Name:</label>
+                            <input type="text" id="contact-name" name="name" required>
+                            <label for="contact-email">Your Email:</label>
+                            <input type="email" id="contact-email" name="email" placeholder="So we can get back to you" required>
+                            <label for="contact-message">Message:</label>
+                            <textarea id="contact-message" name="message" rows="6" required></textarea>
+                        </div>
+                        <div class="form-actions-centered">
+                            <div class="g-recaptcha" data-sitekey="6LcfarMrAAAAAOxEjQkkCs8qErKsGFW5eud9nQGZ"></div>
+                            <button type="submit" class="submit-btn">Send Message</button>
+                        </div>
+                        <p class="form-status"></p>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="footer"> <img src="images_webp/VenableandVineLogo.webp" alt="Venable & Vine Logo" class="logo-img-display"> <p id="footer-text">© 2024 Venable & Vine | Family Owned & Operated</p> </footer>
+    <div id="lightbox" class="lightbox">
+        <span class="close-lightbox">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyAGCJYcP2YSlps3yPME_riEqaFEf_RIOVs", authDomain: "venablevinewebsite.firebaseapp.com", projectId: "venablevinewebsite", storageBucket: "venablevinewebsite.firebasestorage.app", messagingSenderId: "491179783460", appId: "1:491179783460:web:a4eab703b9a6dc3258efb1" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // *** THE FIX IS HERE (Part 1: The Helper Function) ***
+        /**
+         * Checks if a string (especially from a rich text editor) is effectively empty.
+         * @param {string | null | undefined} htmlString The string to check.
+         * @returns {boolean} True if the string has no visible content.
+         */
+        function isRichTextEmpty(htmlString) {
+          if (!htmlString) {
+            return true; // Handles null, undefined, ""
+          }
+          // Create a temporary element to strip HTML tags
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = htmlString;
+          // If the text content after trimming whitespace is empty, it's considered empty
+          return tempDiv.textContent.trim() === '';
+        }
+
+        async function displayMenu() { 
+            const menuGrid = document.getElementById('menu-grid-container'); 
+            const q = query(collection(db, "menuItems"), orderBy("category"), orderBy("name")); 
+            try { 
+                const querySnapshot = await getDocs(q); 
+                const menuByCategory = {}; 
+                querySnapshot.forEach((doc) => { 
+                    const item = doc.data(); 
+                    if (!menuByCategory[item.category]) { menuByCategory[item.category] = []; } 
+                    menuByCategory[item.category].push(item); 
+                }); 
+                let menuHTML = ''; 
+                const categoryOrder = Object.keys(menuByCategory).sort(); 
+                for (const category of categoryOrder) { 
+                    menuHTML += `<div class="menu-category"><h3>${category}</h3>`; 
+                    menuByCategory[category].forEach(item => { 
+                        menuHTML += `<div class="menu-item"> <strong>${item.name}</strong> <div class="menu-item-description">${item.description || ''}</div> </div>`; 
+                    }); 
+                    menuHTML += `</div>`; 
+                } 
+                if (menuHTML) { menuGrid.innerHTML = menuHTML; } 
+            } catch (error) { console.error("Error fetching menu items: ", error); } 
+        }
+        async function displayEvents() { const eventsListDiv = document.getElementById('events-list'); const now = new Date(); const q = query(collection(db, "locations"), where("end", ">=", Timestamp.fromDate(now)), orderBy("end", "asc")); try { const querySnapshot = await getDocs(q); if (querySnapshot.empty) { eventsListDiv.innerHTML = `<p class="no-events">No events are scheduled on the site right now. <br>Please check our Facebook page for the very latest updates!</p>`; return; } const events = []; querySnapshot.forEach((doc) => { events.push(doc.data()); }); events.sort((a, b) => a.start.toMillis() - b.start.toMillis()); eventsListDiv.innerHTML = ''; events.forEach((event) => { const startDate = event.start.toDate(); const endDate = event.end.toDate(); const dateString = startDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }); const startTimeString = startDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); const endTimeString = endDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`; let eventCardHTML = `<div class="event-card">`; if (event.title && event.title.trim() !== '') { eventCardHTML += `<h3>${event.title}</h3><p><strong>Date:</strong> ${dateString}</p>`; } else { eventCardHTML += `<h3>${dateString}</h3>`; } eventCardHTML += `<p><strong>Time:</strong> ${startTimeString} - ${endTimeString}</p><p><strong>Location:</strong> <a href="${mapsLink}" target="_blank" rel="noopener noreferrer">${event.location}</a></p>`; if (event.details && event.details.trim() !== '') { eventCardHTML += `<div class="event-details">${event.details}</div>`; } eventCardHTML += `</div>`; eventsListDiv.innerHTML += eventCardHTML; }); } catch (error) { console.error("Error fetching events: ", error); eventsListDiv.innerHTML = `<p class="no-events">Could not load events at this time. Please check our Facebook page.</p>`; } }
+        async function displayGallery() { const galleryGrid = document.getElementById('gallery-grid-container'); const q = query(collection(db, "galleryImages"), orderBy("order", "asc")); try { const querySnapshot = await getDocs(q); if (querySnapshot.empty) { galleryGrid.innerHTML = `<p style="text-align: center; grid-column: 1 / -1;">Check our Facebook page for the latest photos!</p>`; return; } galleryGrid.innerHTML = ''; querySnapshot.forEach((doc) => { const imageData = doc.data(); const img = document.createElement('img'); img.src = imageData.url; img.alt = "A glimpse of Venable & Vine's goodness."; img.className = 'gallery-image'; galleryGrid.appendChild(img); }); } catch (error) { console.error("Error fetching gallery images: ", error); galleryGrid.innerHTML = `<p>Could not load photos at this time.</p>`; } }
+        async function displayReviews() { const reviewsGrid = document.getElementById('reviews-grid'); const q = query(collection(db, "reviews"), where("status", "==", "approved"), orderBy("createdAt", "desc")); try { const querySnapshot = await getDocs(q); if (querySnapshot.empty) { reviewsGrid.innerHTML = `<p style="text-align: center; grid-column: 1 / -1;">No reviews yet. <a href="#contact">Be the first to leave one!</a></p>`; return; } reviewsGrid.innerHTML = ''; querySnapshot.forEach((doc) => { const review = doc.data(); const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating); const card = document.createElement('div'); card.className = 'review-card'; card.innerHTML = `<div class="stars">${stars}</div><p class="text">"${review.text}"</p><p class="author">- ${review.name}</p>`; reviewsGrid.appendChild(card); }); } catch (error) { console.error("Error fetching reviews: ", error); reviewsGrid.innerHTML = `<p>Could not load reviews at this time.</p>`; } }
+        
+        // *** THE FIX IS HERE (Part 2: The Main Logic) ***
+        async function displaySiteContent() {
+            const contentRef = doc(db, "siteContent", "mainPage");
+            const docSnap = await getDoc(contentRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+
+                const updateText = (id, value) => {
+                    const el = document.getElementById(id);
+                    // Only update if the element exists AND the value is not empty
+                    if (el && !isRichTextEmpty(value)) {
+                        el.textContent = value;
+                    }
+                };
+
+                const updateHTML = (id, value) => {
+                    const el = document.getElementById(id);
+                    // Only update if the element exists AND the value is not effectively empty
+                    if (el && !isRichTextEmpty(value)) {
+                        el.innerHTML = value;
+                    }
+                };
+
+                // Apply the update logic to all fields
+                updateText('hero-title', data.heroTitle);
+                updateText('menu-title', data.menuTitle);
+                updateText('coming-soon-title', data.comingSoonTitle);
+                updateText('story-title', data.storyTitle);
+                updateText('gallery-title', data.galleryTitle);
+                updateText('reviews-title', data.reviewsTitle);
+                updateText('findus-title', data.findUsTitle);
+                updateText('findus-text', data.findUsText);
+                updateText('footer-text', data.footerText);
+
+                updateHTML('hero-subtitle', data.heroSubtitle);
+                updateHTML('coming-soon-text', data.comingSoonText);
+                updateHTML('story-p1', data.storyP1);
+                updateHTML('story-p2', data.storyP2);
+
+                const storyImageEl = document.getElementById('story-image');
+                if (storyImageEl && data.storyImageURL) {
+                    storyImageEl.src = data.storyImageURL;
+                }
+                const facebookButtonEl = document.getElementById('facebook-button');
+                if (facebookButtonEl && data.facebookLink) {
+                    facebookButtonEl.href = data.facebookLink;
+                }
+            } else {
+                console.log("No site content document found. Using default text.");
+            }
+        }
+        
+        function handleFormSubmit(form) { form.addEventListener('submit', async (e) => { e.preventDefault(); const statusElement = form.querySelector('.form-status'); const submitButton = form.querySelector('.submit-btn'); const originalButtonText = submitButton.textContent; statusElement.textContent = 'Sending...'; statusElement.className = 'form-status'; submitButton.disabled = true; submitButton.textContent = 'Please wait...'; const formData = new FormData(form); const dataPayload = Object.fromEntries(formData.entries()); dataPayload.token = dataPayload['g-recaptcha-response']; delete dataPayload['g-recaptcha-response']; try { const response = await fetch('/submit-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dataPayload) }); const contentType = response.headers.get("content-type"); if (!response.ok || !contentType || !contentType.includes("application/json")) { throw new Error("Server did not respond correctly. Please check server configuration."); } const data = await response.json(); if (data.success) { statusElement.textContent = data.message; statusElement.className = 'form-status success'; form.reset(); } else { statusElement.textContent = data.message || 'An unknown error occurred.'; statusElement.className = 'form-status error'; } } catch (error) { console.error('Submission Error:', error); statusElement.textContent = "Error: Could not connect to the form handler. Please try again or contact support."; statusElement.className = 'form-status error'; } finally { grecaptcha.reset(); submitButton.disabled = false; submitButton.textContent = originalButtonText; } }); }
+        handleFormSubmit(document.getElementById('submit-review-form')); handleFormSubmit(document.getElementById('submit-contact-form'));
+        const lightbox = document.getElementById('lightbox'); const lightboxImg = document.getElementById('lightbox-img'); const galleryContainer = document.getElementById('gallery-grid-container'); const closeBtn = document.querySelector('.close-lightbox');
+        function openLightbox(e) { if (e.target.classList.contains('gallery-image')) { lightbox.style.display = 'flex'; lightboxImg.src = e.target.src; document.body.style.overflow = 'hidden'; } }
+        function closeLightbox() { lightbox.style.display = 'none'; lightboxImg.src = ""; document.body.style.overflow = 'auto'; }
+        galleryContainer.addEventListener('click', openLightbox); closeBtn.addEventListener('click', closeLightbox); lightbox.addEventListener('click', (e) => { if (e.target === lightbox) { closeLightbox(); } }); document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lightbox.style.display === 'flex') { closeLightbox(); } });
+        const choiceBtns = document.querySelectorAll('.choice-btn'); const formContainers = document.querySelectorAll('.form-container'); choiceBtns.forEach(btn => { btn.addEventListener('click', () => { choiceBtns.forEach(b => b.classList.remove('active')); btn.classList.add('active'); formContainers.forEach(form => { form.classList.toggle('active', form.id === btn.dataset.form); }); }); });
+        Promise.all([ displayMenu(), displayEvents(), displayGallery(), displaySiteContent(), displayReviews() ]);
+    </script>
+</body>
+</html>

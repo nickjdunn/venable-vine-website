@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V&V Admin Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
+    <!-- SunEditor for rich text editing -->
+    <link href="https://cdn.jsdelivr.net/npm/suneditor@latest/dist/css/suneditor.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/suneditor@latest/dist/suneditor.min.js"></script>
+
+    <link rel="stylesheet" href="admin-style.css">
+    <style>
+        .admin-gallery-item { cursor: grab; }
+        .admin-gallery-item.sortable-ghost { opacity: 0.4; background: #f0f0f0; }
+        .admin-gallery-item.sortable-chosen { cursor: grabbing; }
+        .gallery-item-details { flex-grow: 1; text-align: center; font-style: italic; color: #888; font-size: 0.9em; }
+        #story-image-preview { max-width: 200px; height: auto; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px; }
+        .submission-card { background-color: #f9f9f9; padding: 15px; border-left: 4px solid var(--primary-yellow); margin-bottom: 1rem; border-radius: 4px; }
+        .submission-card p { margin: 4px 0; }
+        .submission-card .author { font-weight: bold; }
+        .submission-card .meta { font-size: 0.8em; color: #777; }
+        .submission-card .message { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+        .submission-actions { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .submission-actions button { padding: 5px 10px; font-size: 0.9em; }
+        .approve-btn { background-color: #166534; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from {opacity: 0; transform: scale(0.95);} to {opacity: 1; transform: scale(1);} }
+        .close-modal { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h1>Venable & Vine Admin</h1>
+    <div id="login-section">
+        <h2>Login</h2>
+        <form id="login-form"><input type="email" id="login-email" placeholder="Email" required><input type="password" id="login-password" placeholder="Password" required><button type="submit">Log In</button><p id="login-error" class="error"></p></form>
+    </div>
+
+    <div id="admin-panel">
+        <h2 id="main-heading">Admin Panel <button id="logout-button" class="logout">Logout</button></h2>
+        <div class="admin-nav" id="admin-nav-menu">
+            <button class="admin-nav-button active" data-target="events-section">Events</button>
+            <button class="admin-nav-button" data-target="menu-section">Menu</button>
+            <button class="admin-nav-button" data-target="gallery-section">Gallery</button>
+            <button class="admin-nav-button" data-target="submissions-section">Submissions</button>
+            <button class="admin-nav-button" data-target="settings-section">Site Settings</button>
+        </div>
+        <div id="events-section" class="admin-section active">
+            <h3 id="event-form-heading">Manage Events</h3>
+            <form id="event-form">
+                <label for="event-title">Event Title (Optional):</label>
+                <input type="text" id="event-title" placeholder="e.g., Downtown Farmer's Market">
+                <label for="event-details">Details (Optional):</label>
+                <textarea id="event-details" placeholder="e.g., Parked near the main stage."></textarea>
+                <label for="event-date">Date:</label>
+                <input type="date" id="event-date" required>
+                <label for="event-time-start">Start Time:</label>
+                <input type="time" id="event-time-start" required>
+                <label for="event-time-end">End Time:</label>
+                <input type="time" id="event-time-end" required>
+                <label for="event-location">Location:</label>
+                <div class="location-input-group"><input type="text" id="event-location" placeholder="123 Main St or tap button ->" required><button type="button" id="get-location-btn">Use Current Location</button></div>
+                <div class="form-actions">
+                    <button type="submit" id="submit-event-btn">Add Event</button>
+                    <button type="button" id="cancel-edit-event-btn" style="display: none;">Cancel Edit</button>
+                </div>
+                <p id="event-form-status"></p>
+            </form>
+            <h4 style="margin-top: 1.5rem;">Current & Upcoming Events</h4>
+            <div id="current-events-list"><p>Loading events...</p></div>
+            <h4 style="margin-top: 1.5rem;">Past Events (Archive)</h4>
+            <div id="past-events-list"><p>Loading archive...</p></div>
+        </div>
+        <div id="menu-section" class="admin-section">
+            <h3>Manage Menu Categories</h3>
+            <form id="category-form">
+                <label for="category-name">New Category Name:</label>
+                <input type="text" id="category-name" placeholder="e.g., Signature Lemonades" required>
+                <button type="submit">Add Category</button>
+                <p id="category-form-status"></p>
+            </form>
+            <h4 style="margin-top: 1.5rem;">Existing Categories</h4>
+            <div id="category-list"><p>Loading categories...</p></div>
+            <hr>
+            <h3 id="menu-form-heading">Manage Menu Items</h3>
+            <form id="menu-item-form">
+                <label for="menu-item-name">Item Name:</label>
+                <input type="text" id="menu-item-name" placeholder="e.g., Strawberry Basil Lemonade" required>
+                <label for="menu-item-description">Description:</label>
+                <textarea id="menu-item-description" placeholder="e.g., Sweet strawberries and fresh basil..."></textarea>
+                <label for="menu-item-category">Category:</label>
+                <select id="menu-item-category" required><option value="">-- Loading Categories --</option></select>
+                <div class="form-actions">
+                    <button type="submit" id="submit-menu-btn">Add Menu Item</button>
+                    <button type="button" id="cancel-edit-menu-btn" style="display: none;">Cancel Edit</button>
+                </div>
+                <p id="menu-form-status"></p>
+            </form>
+            <h4 style="margin-top: 2rem;">Current Menu Items</h4>
+            <div id="menu-items-list"><p>Loading menu items...</p></div>
+        </div>
+        <div id="gallery-section" class="admin-section">
+            <h2>Manage Gallery</h2>
+            <form id="gallery-form">
+                <label for="image-file">Upload New Photo:</label>
+                <input type="file" id="image-file" accept="image/jpeg, image/png, image/webp" required>
+                <button type="submit" id="upload-photo-btn">Upload Photo</button>
+                <p id="gallery-form-status"></p>
+            </form>
+            <h3 style="margin-top: 1.5rem;">Current Photos (Drag to Reorder)</h3>
+            <div id="gallery-list"><p>Loading photos...</p></div>
+        </div>
+        <div id="submissions-section" class="admin-section">
+            <h2>Manage Submissions</h2>
+            <h3 style="margin-top: 1.5rem;">Pending Reviews</h3>
+            <div id="reviews-list-pending"><p>Loading reviews...</p></div>
+            <h3 style="margin-top: 1.5rem;">Approved Reviews</h3>
+            <div id="reviews-list-approved"><p>Loading reviews...</p></div>
+            <hr>
+            <h3 style="margin-top: 1.5rem;">New Contact Messages</h3>
+            <div id="contacts-list-new"><p>Loading messages...</p></div>
+            <h3 style="margin-top: 1.5rem;">Read Messages</h3>
+            <div id="contacts-list-read"><p>Loading messages...</p></div>
+        </div>
+        <div id="settings-section" class="admin-section">
+            <h2>Manage Site Content</h2>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 20px;">Edit the text and images that appear on your public website. The current text is shown as a placeholder.</p>
+            <form id="story-image-form">
+                <h3>Our Story Image</h3>
+                <img id="story-image-preview" src="" alt="Current story image preview">
+                <label for="story-image-file" style="margin-top:10px;">Upload New Story Image:</label>
+                <input type="file" id="story-image-file" accept="image/jpeg, image/png, image/webp">
+                <button type="submit" id="upload-story-image-btn">Save Story Image</button>
+                <p id="story-image-form-status"></p>
+            </form>
+            <hr>
+            <form id="content-form">
+                <h3>Website Text</h3>
+                <label for="edit-hero-title"><strong>Hero Section Title:</strong></label>
+                <input type="text" id="edit-hero-title" placeholder="Freshly Squeezed. Family Made.">
+                <label for="edit-hero-subtitle"><strong>Hero Section Subtitle:</strong></label>
+                <textarea id="edit-hero-subtitle" rows="3" placeholder="Handcrafted lemonades, sweet treats, and honey straight from our hives. Made with love, for you."></textarea>
+                <hr>
+                <label for="edit-menu-title"><strong>Menu Section Title:</strong></label>
+                <input type="text" id="edit-menu-title" placeholder="Taste the Sunshine">
+                <label for="edit-coming-soon-title"><strong>"Coming Soon" Title:</strong></label>
+                <input type="text" id="edit-coming-soon-title" placeholder="Coming Soon!">
+                <label for="edit-coming-soon-text"><strong>"Coming Soon" Text:</strong></label>
+                <textarea id="edit-coming-soon-text" rows="3" placeholder="Get ready for authentic Agua Frescas, classic Fresas con Crema, and our signature Snowflake Refreshers."></textarea>
+                <hr>
+                <label for="edit-story-title"><strong>"Our Story" Section Title:</strong></label>
+                <input type="text" id="edit-story-title" placeholder="From Our Family to Yours">
+                <label for="edit-story-p1"><strong>"Our Story" Section (Paragraph 1):</strong></label>
+                <textarea id="edit-story-p1" rows="4" placeholder="Venable & Vine started around our kitchen table..."></textarea>
+                <label for="edit-story-p2"><strong>"Our Story" Section (Paragraph 2):</strong></label>
+                <textarea id="edit-story-p2" rows="4" placeholder="Every drink is muddled right in front of you..."></textarea>
+                <hr>
+                <label for="edit-gallery-title"><strong>Gallery Section Title:</strong></label>
+                <input type="text" id="edit-gallery-title" placeholder="A Glimpse of Our Goodness">
+                <label for="edit-reviews-title"><strong>Reviews Section Title:</strong></label>
+                <input type="text" id="edit-reviews-title" placeholder="What Our Customers Say">
+                <hr>
+                <label for="edit-findus-title"><strong>"Find Us" Section Title:</strong></label>
+                <input type="text" id="edit-findus-title" placeholder="Where to Find Us">
+                <label for="edit-findus-text"><strong>"Find Us" Section Text:</strong></label>
+                <input type="text" id="edit-findus-text" placeholder="For all other news, follow us on Facebook!">
+                <label for="edit-facebook-link"><strong>Facebook Button URL:</strong></label>
+                <input type="url" id="edit-facebook-link" placeholder="https://www.facebook.com/your-page">
+                <hr>
+                <label for="edit-footer-text"><strong>Footer Text:</strong></label>
+                <input type="text" id="edit-footer-text" placeholder="© 2024 Venable & Vine | Family Owned & Operated">
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="submit" id="save-content-btn">Save All Text Changes</button>
+                </div>
+                <p id="content-form-status"></p>
+            </form>
+        </div>
+    </div>
+    
+    <div id="edit-review-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Edit Review</h2>
+            <form id="edit-review-form">
+                <input type="hidden" id="edit-review-id">
+                <label for="edit-review-name">Name:</label>
+                <input type="text" id="edit-review-name" required>
+                <label for="edit-review-rating">Rating (1-5):</label>
+                <input type="number" id="edit-review-rating" min="1" max="5" required>
+                <label for="edit-review-text">Review Text:</label>
+                <textarea id="edit-review-text" rows="4" required></textarea>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+      import { getFirestore, collection, addDoc, Timestamp, doc, deleteDoc, getDoc, updateDoc, getDocs, query, where, orderBy, serverTimestamp, writeBatch, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+      import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
+
+      const firebaseConfig = { apiKey: "AIzaSyAGCJYcP2YSlps3yPME_riEqaFEf_RIOVs", authDomain: "venablevinewebsite.firebaseapp.com", projectId: "venablevinewebsite", storageBucket: "venablevinewebsite.firebasestorage.app", messagingSenderId: "491179783460", appId: "1:491179783460:web:a4eab703b9a6dc3258efb1" };
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+      
+      const adminPanel = document.getElementById('admin-panel');
+      const loginSection = document.getElementById('login-section');
+      const eventForm = document.getElementById('event-form');
+      const eventFormHeading = document.getElementById('event-form-heading');
+      const submitEventBtn = document.getElementById('submit-event-btn');
+      const cancelEditEventBtn = document.getElementById('cancel-edit-event-btn');
+      const eventTitleInput = document.getElementById('event-title');
+      const eventLocationInput = document.getElementById('event-location');
+      const getLocationBtn = document.getElementById('get-location-btn');
+      const categoryForm = document.getElementById('category-form');
+      const categoryNameInput = document.getElementById('category-name');
+      const categoryListDiv = document.getElementById('category-list');
+      const menuItemForm = document.getElementById('menu-item-form');
+      const menuFormHeading = document.getElementById('menu-form-heading');
+      const menuSubmitBtn = document.getElementById('submit-menu-btn');
+      const menuCancelEditBtn = document.getElementById('cancel-edit-menu-btn');
+      const menuItemCategorySelect = document.getElementById('menu-item-category');
+      const galleryForm = document.getElementById('gallery-form');
+      const imageFileInput = document.getElementById('image-file');
+      const uploadPhotoBtn = document.getElementById('upload-photo-btn');
+      const galleryListDiv = document.getElementById('gallery-list');
+      const galleryStatusP = document.getElementById('gallery-form-status');
+      const adminNavMenu = document.getElementById('admin-nav-menu');
+      const adminSections = document.querySelectorAll('.admin-section');
+      const contentForm = document.getElementById('content-form');
+      const storyImageForm = document.getElementById('story-image-form');
+      const storyImageFile = document.getElementById('story-image-file');
+      const storyImagePreview = document.getElementById('story-image-preview');
+      const storyImageFormStatus = document.getElementById('story-image-form-status');
+      const editHeroTitle = document.getElementById('edit-hero-title');
+      const editMenuTitle = document.getElementById('edit-menu-title');
+      const editComingSoonTitle = document.getElementById('edit-coming-soon-title');
+      const editStoryTitle = document.getElementById('edit-story-title');
+      const editGalleryTitle = document.getElementById('edit-gallery-title');
+      const editReviewsTitle = document.getElementById('edit-reviews-title');
+      const editFindUsTitle = document.getElementById('edit-findus-title');
+      const editFindUsText = document.getElementById('edit-findus-text');
+      const editFacebookLink = document.getElementById('edit-facebook-link');
+      const editFooterText = document.getElementById('edit-footer-text');
+      const contentFormStatus = document.getElementById('content-form-status');
+      const reviewsListPending = document.getElementById('reviews-list-pending');
+      const reviewsListApproved = document.getElementById('reviews-list-approved');
+      const contactsListNew = document.getElementById('contacts-list-new');
+      const contactsListRead = document.getElementById('contacts-list-read');
+      const editReviewModal = document.getElementById('edit-review-modal');
+      const editReviewForm = document.getElementById('edit-review-form');
+
+      let currentEditEventId = null;
+      let currentEditMenuId = null;
+      
+      const editorOptions = {
+          buttonList: [
+              ['undo', 'redo'],
+              ['formatBlock', 'fontSize'],
+              ['bold', 'italic', 'underline', 'strike'],
+              ['fontColor', 'hiliteColor'],
+              ['align', 'list'],
+              ['link', 'removeFormat']
+          ],
+          height: '200px'
+      };
+      
+      const eventDetailsEditor = SUNEDITOR.create('event-details', editorOptions);
+      const menuItemDescriptionEditor = SUNEDITOR.create('menu-item-description', editorOptions);
+      const heroSubtitleEditor = SUNEDITOR.create('edit-hero-subtitle', editorOptions);
+      const comingSoonTextEditor = SUNEDITOR.create('edit-coming-soon-text', editorOptions);
+      const storyP1Editor = SUNEDITOR.create('edit-story-p1', editorOptions);
+      const storyP2Editor = SUNEDITOR.create('edit-story-p2', editorOptions);
+
+      adminNavMenu.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { const targetId = e.target.dataset.target; adminNavMenu.querySelector('.active').classList.remove('active'); e.target.classList.add('active'); adminSections.forEach(section => { section.classList.toggle('active', section.id === targetId); }); } });
+      const resetEventForm = () => { currentEditEventId = null; eventFormHeading.textContent = 'Manage Events'; submitEventBtn.textContent = 'Add Event'; cancelEditEventBtn.style.display = 'none'; eventForm.reset(); eventDetailsEditor.setContents(''); };
+      const resetMenuForm = () => { currentEditMenuId = null; menuFormHeading.textContent = 'Manage Menu Items'; menuSubmitBtn.textContent = 'Add Menu Item'; menuCancelEditBtn.style.display = 'none'; menuItemForm.reset(); menuItemDescriptionEditor.setContents(''); };
+      
+      const renderEvents = (targetDiv, events, emptyMessage) => { if (events.length === 0) { targetDiv.innerHTML = `<p>${emptyMessage}</p>`; return; } targetDiv.innerHTML = ''; events.forEach(event => { const startDate = event.start.toDate(); const endDate = event.end.toDate(); const startTimeString = startDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); const endTimeString = endDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); const eventCard = document.createElement('div'); eventCard.className = 'admin-card'; const eventTitle = event.title ? `<strong>${event.title}</strong>` : '<em>(No Title)</em>'; const eventDetails = event.details ? `<div class="details">${event.details}</div>` : ''; eventCard.innerHTML = `<div class="admin-card-content"><div class="admin-card-details"><p>${eventTitle}</p><p>${startDate.toLocaleDateString()} (${startTimeString} - ${endTimeString})</p><p>${event.location}</p>${eventDetails}</div><div class="admin-card-actions"><button class="edit-btn" data-id="${event.id}">Edit</button><button class="delete-btn" data-id="${event.id}">Delete</button></div></div>`; targetDiv.appendChild(eventCard); }); };
+      const renderMenuItems = (targetDiv, items, emptyMessage) => { if (items.length === 0) { targetDiv.innerHTML = `<p>${emptyMessage}</p>`; return; } targetDiv.innerHTML = ''; items.forEach(item => { const itemCard = document.createElement('div'); itemCard.className = 'admin-card'; const itemDescription = item.description ? `<div class="details">${item.description}</div>` : ''; itemCard.innerHTML = `<div class="admin-card-content"><div class="admin-card-details"><p class="category">${item.category}</p><p><strong>${item.name}</strong></p>${itemDescription}</div><div class="admin-card-actions"><button class="edit-menu-btn" data-id="${item.id}">Edit</button><button class="delete-menu-btn" data-id="${item.id}">Delete</button></div></div>`; targetDiv.appendChild(itemCard); }); };
+      
+      async function displayAdminEvents() { const targetDiv = document.getElementById('current-events-list'); targetDiv.innerHTML = "<p>Loading events...</p>"; const now = new Date(); const q = query(collection(db, "locations"), where("end", ">=", Timestamp.fromDate(now)), orderBy("end", "asc")); const querySnapshot = await getDocs(q); const events = []; querySnapshot.forEach((doc) => { events.push({ id: doc.id, ...doc.data() }); }); events.sort((a, b) => a.start.toMillis() - b.start.toMillis()); renderEvents(targetDiv, events, "No current or upcoming events found."); }
+      async function displayPastEvents() { const targetDiv = document.getElementById('past-events-list'); targetDiv.innerHTML = "<p>Loading archive...</p>"; const now = new Date(); const q = query(collection(db, "locations"), where("end", "<", Timestamp.fromDate(now)), orderBy("end", "desc")); const querySnapshot = await getDocs(q); const events = []; querySnapshot.forEach((doc) => { events.push({ id: doc.id, ...doc.data() }); }); renderEvents(targetDiv, events, "No past events found in the archive."); }
+      async function displayAdminMenuItems() { const targetDiv = document.getElementById('menu-items-list'); targetDiv.innerHTML = "<p>Loading menu items...</p>"; const q = query(collection(db, "menuItems"), orderBy("category"), orderBy("name")); const querySnapshot = await getDocs(q); const items = []; querySnapshot.forEach((doc) => { items.push({ id: doc.id, ...doc.data() }); }); renderMenuItems(targetDiv, items, "No menu items have been added yet."); }
+      async function displayAdminCategories() { const q = query(collection(db, "menuCategories"), orderBy("createdAt", "asc")); const querySnapshot = await getDocs(q); if (querySnapshot.empty) { categoryListDiv.innerHTML = `<p>No categories created yet.</p>`; return; } categoryListDiv.innerHTML = ''; querySnapshot.forEach(doc => { const category = doc.data(); const itemDiv = document.createElement('div'); itemDiv.className = 'category-item'; itemDiv.innerHTML = `<span>${category.name}</span><button class="delete-category-btn" data-id="${doc.id}">Delete</button>`; categoryListDiv.appendChild(itemDiv); }); }
+      async function populateCategoryDropdown() { const q = query(collection(db, "menuCategories"), orderBy("createdAt", "asc")); const querySnapshot = await getDocs(q); const originalValue = menuItemCategorySelect.value; menuItemCategorySelect.innerHTML = '<option value="">-- Select a Category --</option>'; if (querySnapshot.empty) { menuItemCategorySelect.innerHTML = '<option value="">-- Please Add a Category First --</option>'; return; } querySnapshot.forEach(doc => { const category = doc.data(); const option = document.createElement('option'); option.value = category.name; option.textContent = category.name; menuItemCategorySelect.appendChild(option); }); menuItemCategorySelect.value = originalValue; }
+      async function displayAdminGallery() { galleryListDiv.innerHTML = `<p>Loading photos...</p>`; const q = query(collection(db, "galleryImages"), orderBy("order", "asc")); const querySnapshot = await getDocs(q); if (querySnapshot.empty) { galleryListDiv.innerHTML = `<p>No photos have been uploaded yet.</p>`; return; } galleryListDiv.innerHTML = ''; let index = 0; querySnapshot.forEach((doc) => { const imageData = doc.data(); const itemDiv = document.createElement('div'); itemDiv.className = 'admin-gallery-item'; itemDiv.dataset.id = doc.id; itemDiv.innerHTML = `<img src="${imageData.url}" alt="Gallery preview"><div class="gallery-item-details">Position: ${index + 1}</div><button class="delete-gallery-btn" data-id="${doc.id}" data-path="${imageData.path}">Delete</button>`; galleryListDiv.appendChild(itemDiv); index++; }); }
+      async function displayAdminContent() { const contentRef = doc(db, "siteContent", "mainPage"); const docSnap = await getDoc(contentRef); const data = docSnap.exists() ? docSnap.data() : {}; editHeroTitle.value = data.heroTitle || ''; heroSubtitleEditor.setContents(data.heroSubtitle || ''); editMenuTitle.value = data.menuTitle || ''; editComingSoonTitle.value = data.comingSoonTitle || ''; comingSoonTextEditor.setContents(data.comingSoonText || ''); editStoryTitle.value = data.storyTitle || ''; storyP1Editor.setContents(data.storyP1 || ''); storyP2Editor.setContents(data.storyP2 || ''); editGalleryTitle.value = data.galleryTitle || ''; editReviewsTitle.value = data.reviewsTitle || ''; editFindUsTitle.value = data.findUsTitle || ''; editFindUsText.value = data.findUsText || ''; editFacebookLink.value = data.facebookLink || ''; editFooterText.value = data.footerText || ''; storyImagePreview.src = data.storyImageURL || 'images_webp/FoodTruckPicture.webp'; }
+      async function displayAdminReviews() { const render = (targetDiv, reviews, approved) => { if (reviews.length === 0) { targetDiv.innerHTML = `<p>No ${approved ? 'approved' : 'pending'} reviews found.</p>`; return; } targetDiv.innerHTML = ''; reviews.forEach(review => { const card = document.createElement('div'); card.className = 'submission-card'; const date = review.createdAt ? review.createdAt.toDate().toLocaleDateString() : 'N/A'; card.innerHTML = `<p class="author">${review.name || 'Anonymous'} <span style="color:var(--primary-yellow);">${'★'.repeat(review.rating)}</span></p><p class="meta">Submitted on: ${date}</p><p class="message">${review.text || '(No content)'}</p><div class="submission-actions">${approved ? `<button class="unapprove-review-btn" data-id="${review.id}">Move to Pending</button>` : `<button class="approve-review-btn approve-btn" data-id="${review.id}">Approve</button>`}<button class="edit-review-btn" data-id="${review.id}">Edit</button><button class="delete-review-btn delete-btn" data-id="${review.id}">Delete</button></div>`; targetDiv.appendChild(card); }); }; const qPending = query(collection(db, "reviews"), where("status", "==", "pending"), orderBy("createdAt", "desc")); const qApproved = query(collection(db, "reviews"), where("status", "==", "approved"), orderBy("createdAt", "desc")); const [pendingSnapshot, approvedSnapshot] = await Promise.all([getDocs(qPending), getDocs(qApproved)]); const pendingReviews = pendingSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const approvedReviews = approvedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); render(reviewsListPending, pendingReviews, false); render(reviewsListApproved, approvedReviews, true); }
+      async function displayAdminContacts() { const render = (targetDiv, contacts, isNew) => { if (contacts.length === 0) { targetDiv.innerHTML = `<p>No ${isNew ? 'new' : 'read'} messages found.</p>`; return; } targetDiv.innerHTML = ''; contacts.forEach(contact => { const card = document.createElement('div'); card.className = 'submission-card'; const date = contact.createdAt ? contact.createdAt.toDate().toLocaleString() : 'N/A'; card.innerHTML = `<p class="author">${contact.name} (<a href="mailto:${contact.email}">${contact.email}</a>)</p><p class="meta">Received on: ${date}</p><p class="message">${contact.message}</p><div class="submission-actions">${isNew ? `<button class="mark-read-btn" data-id="${contact.id}">Mark as Read</button>` : `<button class="mark-unread-btn" data-id="${contact.id}">Mark as New</button>`}<button class="delete-contact-btn delete-btn" data-id="${contact.id}">Delete</button></div>`; targetDiv.appendChild(card); }); }; const qNew = query(collection(db, "contacts"), where("status", "==", "new"), orderBy("createdAt", "desc")); const qRead = query(collection(db, "contacts"), where("status", "==", "read"), orderBy("createdAt", "desc")); const [newSnapshot, readSnapshot] = await Promise.all([getDocs(qNew), getDocs(qRead)]); const newContacts = newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); const readContacts = readSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); render(contactsListNew, newContacts, true); render(contactsListRead, readContacts, false); }
+
+      new Sortable(galleryListDiv, { animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', onEnd: async function (evt) { const items = galleryListDiv.querySelectorAll('.admin-gallery-item'); const batch = writeBatch(db); items.forEach((item, index) => { const docId = item.dataset.id; if(docId) { const docRef = doc(db, "galleryImages", docId); batch.update(docRef, { order: index }); } }); try { await batch.commit(); galleryStatusP.textContent = 'Order saved!'; galleryStatusP.className = 'success'; setTimeout(() => galleryStatusP.textContent = '', 2000); await displayAdminGallery(); } catch (error) { console.error("Error saving order:", error); galleryStatusP.textContent = 'Error saving order.'; galleryStatusP.className = 'error'; } } });
+      eventForm.addEventListener('submit', async (e) => { e.preventDefault(); const startTimestamp = new Date(`${document.getElementById('event-date').value}T${document.getElementById('event-time-start').value}`); const endTimestamp = new Date(`${document.getElementById('event-date').value}T${document.getElementById('event-time-end').value}`); const eventData = { title: eventTitleInput.value, details: eventDetailsEditor.getContents(true), start: Timestamp.fromDate(startTimestamp), end: Timestamp.fromDate(endTimestamp), location: eventLocationInput.value }; const statusP = document.getElementById('event-form-status'); try { if (currentEditEventId) { await updateDoc(doc(db, "locations", currentEditEventId), eventData); statusP.className = 'success'; statusP.textContent = 'Event updated!'; } else { await addDoc(collection(db, "locations"), eventData); statusP.className = 'success'; statusP.textContent = 'Event added!'; } resetEventForm(); displayAdminEvents(); displayPastEvents(); setTimeout(() => statusP.textContent = '', 3000); } catch (error) { statusP.className = 'error'; statusP.textContent = `Error: ${error.message}`; } });
+      categoryForm.addEventListener('submit', async (e) => { e.preventDefault(); const categoryName = categoryNameInput.value.trim(); if (!categoryName) return; const statusP = document.getElementById('category-form-status'); try { await addDoc(collection(db, "menuCategories"), { name: categoryName, createdAt: serverTimestamp() }); statusP.className = 'success'; statusP.textContent = 'Category added!'; categoryForm.reset(); await displayAdminCategories(); await populateCategoryDropdown(); setTimeout(() => statusP.textContent = '', 3000); } catch (error) { statusP.className = 'error'; statusP.textContent = `Error: ${error.message}`; } });
+      menuItemForm.addEventListener('submit', async (e) => { e.preventDefault(); if (!menuItemCategorySelect.value) { alert('Please select a category for the menu item.'); return; } const menuItemData = { name: document.getElementById('menu-item-name').value, description: menuItemDescriptionEditor.getContents(true), category: menuItemCategorySelect.value }; const statusP = document.getElementById('menu-form-status'); try { if (currentEditMenuId) { await updateDoc(doc(db, "menuItems", currentEditMenuId), menuItemData); statusP.className = 'success'; statusP.textContent = 'Menu item updated!'; } else { await addDoc(collection(db, "menuItems"), menuItemData); statusP.className = 'success'; statusP.textContent = 'Menu item added!'; } resetMenuForm(); displayAdminMenuItems(); setTimeout(() => statusP.textContent = '', 3000); } catch (error) { statusP.className = 'error'; statusP.textContent = `Error: ${error.message}`; } });
+      galleryForm.addEventListener('submit', async (e) => { e.preventDefault(); const file = imageFileInput.files[0]; if (!file) return; uploadPhotoBtn.disabled = true; uploadPhotoBtn.textContent = 'Uploading...'; galleryStatusP.textContent = 'Please wait...'; galleryStatusP.className = ''; const storageRef = ref(storage, `gallery/${Date.now()}-${file.name}`); try { const q = query(collection(db, "galleryImages")); const snapshot = await getDocs(q); const newOrderPosition = snapshot.size; await uploadBytes(storageRef, file); const downloadURL = await getDownloadURL(storageRef); await addDoc(collection(db, "galleryImages"), { url: downloadURL, path: storageRef.fullPath, createdAt: serverTimestamp(), order: newOrderPosition }); galleryStatusP.className = 'success'; galleryStatusP.textContent = 'Photo uploaded successfully!'; galleryForm.reset(); await displayAdminGallery(); } catch (error) { galleryStatusP.className = 'error'; galleryStatusP.textContent = `Error: ${error.message}`; } finally { uploadPhotoBtn.disabled = false; uploadPhotoBtn.textContent = 'Upload Photo'; setTimeout(() => galleryStatusP.textContent = '', 4000); } });
+      contentForm.addEventListener('submit', async (e) => { e.preventDefault(); const contentRef = doc(db, "siteContent", "mainPage"); const dataToSave = { heroTitle: editHeroTitle.value, heroSubtitle: heroSubtitleEditor.getContents(true), menuTitle: editMenuTitle.value, comingSoonTitle: editComingSoonTitle.value, comingSoonText: comingSoonTextEditor.getContents(true), storyTitle: editStoryTitle.value, storyP1: storyP1Editor.getContents(true), storyP2: storyP2Editor.getContents(true), galleryTitle: editGalleryTitle.value, reviewsTitle: editReviewsTitle.value, findUsTitle: editFindUsTitle.value, findUsText: editFindUsText.value, facebookLink: editFacebookLink.value, footerText: editFooterText.value }; try { await setDoc(contentRef, dataToSave, { merge: true }); contentFormStatus.className = 'success'; contentFormStatus.textContent = 'Site text updated successfully!'; } catch (error) { contentFormStatus.className = 'error'; contentFormStatus.textContent = `Error: ${error.message}`; } finally { setTimeout(() => contentFormStatus.textContent = '', 3000); } });
+      storyImageForm.addEventListener('submit', async (e) => { e.preventDefault(); const file = storyImageFile.files[0]; if (!file) { storyImageFormStatus.className = 'error'; storyImageFormStatus.textContent = 'Please choose a file first.'; return; } const button = e.target.querySelector('button'); button.disabled = true; button.textContent = 'Uploading...'; storyImageFormStatus.textContent = 'Please wait...'; const storageRef = ref(storage, `site-images/storyImage-${Date.now()}`); const contentRef = doc(db, "siteContent", "mainPage"); try { const docSnap = await getDoc(contentRef); if (docSnap.exists() && docSnap.data().storyImagePath) { const oldPath = docSnap.data().storyImagePath; const oldRef = ref(storage, oldPath); await deleteObject(oldRef).catch(err => console.log("Old image not found, proceeding.", err)); } await uploadBytes(storageRef, file); const downloadURL = await getDownloadURL(storageRef); await setDoc(contentRef, { storyImageURL: downloadURL, storyImagePath: storageRef.fullPath }, { merge: true }); storyImagePreview.src = downloadURL; storyImageFormStatus.className = 'success'; storyImageFormStatus.textContent = 'Story image updated!'; storyImageForm.reset(); } catch (error) { storyImageFormStatus.className = 'error'; storyImageFormStatus.textContent = `Error: ${error.message}`; } finally { button.disabled = false; button.textContent = 'Save Story Image'; setTimeout(() => storyImageFormStatus.textContent = '', 3000); } });
+      
+      adminPanel.addEventListener('click', async (e) => { 
+        const target = e.target; 
+        const id = target.dataset.id; 
+        if (target.classList.contains('edit-btn')) { const docSnap = await getDoc(doc(db, "locations", id)); if (docSnap.exists()) { const data = docSnap.data(); eventTitleInput.value = data.title || ''; eventDetailsEditor.setContents(data.details || ''); const startDate = data.start.toDate(); document.getElementById('event-date').value = startDate.toISOString().split('T')[0]; document.getElementById('event-time-start').value = startDate.toTimeString().slice(0, 5); document.getElementById('event-time-end').value = data.end.toDate().toTimeString().slice(0, 5); eventLocationInput.value = data.location || ''; currentEditEventId = id; eventFormHeading.textContent = 'Edit Event'; submitEventBtn.textContent = 'Save Changes'; cancelEditEventBtn.style.display = 'inline-block'; window.scrollTo(0, 0); } }
+        else if (target.classList.contains('edit-menu-btn')) { const docSnap = await getDoc(doc(db, "menuItems", id)); if (docSnap.exists()) { const data = docSnap.data(); document.getElementById('menu-item-name').value = data.name || ''; menuItemDescriptionEditor.setContents(data.description || ''); menuItemCategorySelect.value = data.category || ''; currentEditMenuId = id; menuFormHeading.textContent = 'Edit Menu Item'; menuSubmitBtn.textContent = 'Save Changes'; menuCancelEditBtn.style.display = 'inline-block'; menuItemForm.scrollIntoView({ behavior: 'smooth' }); } }
+        else if (target.classList.contains('delete-review-btn')) { if (confirm('Are you sure you want to delete this review?')) { try { await deleteDoc(doc(db, "reviews", id)); alert("Review deleted successfully!"); await displayAdminReviews(); } catch (error) { console.error("Error deleting review:", error); alert(`An error occurred: ${error.message}`); } } }
+        else if (target.classList.contains('delete-contact-btn')) { if (confirm('Are you sure?')) { await deleteDoc(doc(db, "contacts", id)); displayAdminContacts(); } }
+        else if (target.classList.contains('delete-btn')) { if (confirm('Are you sure?')) { await deleteDoc(doc(db, "locations", id)); displayAdminEvents(); displayPastEvents(); if (currentEditEventId === id) resetEventForm(); } }
+        else if (target.classList.contains('delete-menu-btn')) { if (confirm('Are you sure?')) { await deleteDoc(doc(db, "menuItems", id)); displayAdminMenuItems(); if (currentEditMenuId === id) resetMenuForm(); } }
+        else if (target.classList.contains('delete-category-btn')) { if (confirm('Are you sure?')) { await deleteDoc(doc(db, "menuCategories", id)); displayAdminCategories(); populateCategoryDropdown(); } }
+        else if (target.classList.contains('delete-gallery-btn')) { const filePath = target.dataset.path; if (confirm('Are you sure?')) { target.disabled = true; target.textContent = 'Deleting...'; const fileRef = ref(storage, filePath); try { await deleteObject(fileRef); await deleteDoc(doc(db, "galleryImages", id)); await displayAdminGallery(); } catch (error) { alert(`Error: ${error.message}`); target.disabled = false; target.textContent = 'Delete'; } } }
+        else if (target.classList.contains('approve-review-btn')) { await updateDoc(doc(db, "reviews", id), { status: 'approved' }); displayAdminReviews(); }
+        else if (target.classList.contains('unapprove-review-btn')) { await updateDoc(doc(db, "reviews", id), { status: 'pending' }); displayAdminReviews(); }
+        else if (target.classList.contains('edit-review-btn')) { const docSnap = await getDoc(doc(db, "reviews", id)); if (docSnap.exists()) { const data = docSnap.data(); document.getElementById('edit-review-id').value = docSnap.id; document.getElementById('edit-review-name').value = data.name; document.getElementById('edit-review-rating').value = data.rating; document.getElementById('edit-review-text').value = data.text; editReviewModal.style.display = 'block'; } }
+        else if (target.classList.contains('mark-read-btn')) { await updateDoc(doc(db, "contacts", id), { status: 'read' }); displayAdminContacts(); }
+        else if (target.classList.contains('mark-unread-btn')) { await updateDoc(doc(db, "contacts", id), { status: 'new' }); displayAdminContacts(); }
+      });
+
+      cancelEditEventBtn.addEventListener('click', resetEventForm);
+      menuCancelEditBtn.addEventListener('click', resetMenuForm);
+      editReviewModal.addEventListener('click', (e) => { if (e.target.classList.contains('close-modal') || e.target.classList.contains('modal')) { editReviewModal.style.display = 'none'; } });
+      editReviewForm.addEventListener('submit', async (e) => { e.preventDefault(); const id = document.getElementById('edit-review-id').value; const data = { name: document.getElementById('edit-review-name').value, rating: Number(document.getElementById('edit-review-rating').value), text: document.getElementById('edit-review-text').value }; await updateDoc(doc(db, "reviews", id), data); editReviewModal.style.display = 'none'; await displayAdminReviews(); });
+      onAuthStateChanged(auth, async (user) => { if (user) { loginSection.style.display = 'none'; adminPanel.style.display = 'block'; resetEventForm(); resetMenuForm(); await Promise.all([ displayAdminEvents(), displayPastEvents(), displayAdminMenuItems(), displayAdminCategories(), populateCategoryDropdown(), displayAdminGallery(), displayAdminContent(), displayAdminReviews(), displayAdminContacts() ]); } else { loginSection.style.display = 'block'; adminPanel.style.display = 'none'; } });
+      document.getElementById('login-form').addEventListener('submit', (e) => { e.preventDefault(); const email = document.getElementById('login-email').value; const password = document.getElementById('login-password').value; signInWithEmailAndPassword(auth, email, password).catch((error) => { document.getElementById('login-error').textContent = "Error: Invalid email or password."; }); });
+      document.getElementById('logout-button').addEventListener('click', () => signOut(auth));
+      getLocationBtn.addEventListener('click', () => { if (!("geolocation" in navigator)) { return alert('Geolocation is not supported by your browser.'); } getLocationBtn.textContent = 'Getting...'; getLocationBtn.disabled = true; const geoOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }; navigator.geolocation.getCurrentPosition(async (position) => { const { latitude: lat, longitude: lon } = position.coords; const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`); const data = await response.json(); if (data && data.address) { const addr = data.address; const addressParts = []; const street = [addr.house_number, addr.road].filter(Boolean).join(' '); if (street) addressParts.push(street); const city = addr.city || addr.town || addr.village; if (city) addressParts.push(city); const stateZip = [addr.state, addr.postcode].filter(Boolean).join(' '); if (stateZip) addressParts.push(stateZip); if (addressParts.length > 0) { eventLocationInput.value = addressParts.join(', '); } else { eventLocationInput.value = data.display_name || "Could not determine address."; } } else { eventLocationInput.value = "Could not find a structured address."; } getLocationBtn.textContent = 'Use Current Location'; getLocationBtn.disabled = false; }, (error) => { let msg; switch(error.code) { case error.PERMISSION_DENIED: msg = "You denied the request for Geolocation."; break; case error.POSITION_UNAVAILABLE: msg = "Location information is unavailable."; break; case error.TIMEOUT: msg = "The request to get user location timed out."; break; default: msg = "An unknown error occurred."; } alert(msg); getLocationBtn.textContent = 'Use Current Location'; getLocationBtn.disabled = false; }, geoOptions); });
+    </script>
+</body>
+</html>

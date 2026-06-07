@@ -1,0 +1,11 @@
+config/database.php
+config/.installed
+config/app.php
+public/uploads/*
+!public/uploads/.gitkeep
+*.log
+Legacy_Venable_Vine_Website/error_log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

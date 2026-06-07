@@ -1,0 +1,14 @@
+# Protect config if placed inside public_html parent
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Route requests to public folder if deployed at repo root
+    # RewriteCond %{REQUEST_URI} !^/public/
+    # RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Deny access to sensitive files
+<FilesMatch "\.(sql|md|example\.php)$">
+    Require all denied
+</FilesMatch>
