@@ -9,7 +9,8 @@ function section_editor_labels(): array
 
 function section_editor_settings(string $type): array
 {
-    return match ($type) {
+    $style = section_style_settings();
+    $specific = match ($type) {
         'menu_preview' => [
             ['key' => 'show_coming_soon', 'label' => 'Show Coming Soon box', 'type' => 'checkbox'],
             ['key' => 'link_to_full_menu', 'label' => 'Show link to full menu', 'type' => 'checkbox'],
@@ -18,12 +19,9 @@ function section_editor_settings(string $type): array
             ['key' => 'show_facebook_button', 'label' => 'Show Facebook button', 'type' => 'checkbox'],
             ['key' => 'max_events', 'label' => 'Max events to show', 'type' => 'number'],
         ],
-        'contact' => [
-            ['key' => 'show_contact', 'label' => 'Show contact form', 'type' => 'checkbox'],
-            ['key' => 'show_review', 'label' => 'Show review form', 'type' => 'checkbox'],
-        ],
         default => [],
     };
+    return array_merge($specific, $style);
 }
 
 function render_block_in_editor(array $block, string $rowId): void
@@ -32,6 +30,9 @@ function render_block_in_editor(array $block, string $rowId): void
     $config = $block['config'] ?? [];
     if ($type === 'gallery') {
         $config = ensure_gallery_config_photos($config);
+    }
+    if ($type === 'contact') {
+        $config = ensure_contact_config_forms($config);
     }
     $blockId = $block['id'] ?? '';
     $active = !isset($block['active']) || $block['active'];
@@ -48,10 +49,7 @@ function render_block_in_editor(array $block, string $rowId): void
     echo '<span class="se-drag-handle" title="Drag to reorder">☰</span>';
     echo '<span class="se-section-label">' . e($label) . '</span>';
     echo '<button type="button" class="se-btn se-toggle-vis" title="Show/hide on live site">' . ($active ? '👁' : '👁‍🗨') . '</button>';
-    $settings = section_editor_settings($type);
-    if ($settings) {
-        echo '<button type="button" class="se-btn se-settings-btn" title="Section settings">⚙</button>';
-    }
+    echo '<button type="button" class="se-btn se-settings-btn" title="Section settings">⚙</button>';
     echo '</div>';
 
     echo '<div class="se-section-body">';

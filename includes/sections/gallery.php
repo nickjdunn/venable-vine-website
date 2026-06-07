@@ -2,11 +2,15 @@
 $config = ensure_gallery_config_photos($config ?? []);
 $photos = normalize_gallery_photos($config['photos'] ?? []);
 ?>
-<section id="gallery" class="container section-gallery">
+<section id="gallery" class="container section-gallery"<?= section_style_attr($config) ?>>
     <?php editable_text('title', $config['title'] ?? 'Gallery', 'h2'); ?>
     <?php if (editor_mode()): ?>
         <div class="se-gallery-editor" data-gallery-editor>
-            <p class="se-gallery-hint">Add photos for your homepage gallery here. The Media Library is for storing images used elsewhere on the site.</p>
+            <?php if (empty($photos)): ?>
+                <p class="se-gallery-hint" data-gallery-hint>No photos yet — click Add Photos to choose images from your Media Library.</p>
+            <?php else: ?>
+                <p class="se-gallery-hint" data-gallery-hint hidden>No photos yet — click Add Photos to choose images from your Media Library.</p>
+            <?php endif; ?>
             <div class="se-gallery-grid" data-gallery-grid>
                 <?php foreach ($photos as $i => $photo): ?>
                     <?php $url = upload_url($photo['src']); ?>

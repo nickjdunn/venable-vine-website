@@ -6,7 +6,7 @@ $socials = array_filter([
 ]);
 ?>
 <?php if (editor_mode() || $socials): ?>
-<section id="social" class="section-social">
+<section id="social" class="section-social"<?= section_style_attr($config) ?>>
     <div class="container text-center">
         <?php editable_text('title', $config['title'] ?? 'Follow Us', 'h2'); ?>
         <?php if (editor_mode()): ?>

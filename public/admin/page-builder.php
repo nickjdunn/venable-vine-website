@@ -26,6 +26,10 @@ $editorBootstrap = [
     'layout' => $pbLayout,
     'sectionSettings' => $sectionSettings,
     'sectionLabels' => section_editor_labels(),
+    'forms' => array_values(array_filter(array_map(
+        static fn($f) => FormRepository::find((int) $f['id']),
+        FormRepository::all(true)
+    ))),
 ];
 
 agent_debug_log('C', 'page-builder.php:embed', 'EDITOR_INITIAL prepared', [

@@ -1,5 +1,5 @@
 <?php $reviews = ReviewRepository::approved(12); ?>
-<section id="reviews" class="section-reviews">
+<section id="reviews" class="section-reviews"<?= section_style_attr($config) ?>>
     <div class="container">
         <?php editable_text('title', $config['title'] ?? 'Reviews', 'h2'); ?>
         <?php if (editor_mode()): ?>

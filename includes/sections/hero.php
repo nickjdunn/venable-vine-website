@@ -14,7 +14,7 @@ if (editor_mode()) {
     }
 }
 ?>
-<section<?= $heroAttrs ?><?= $heroStyle ? ' style="' . $heroStyle . '"' : '' ?>>
+<section<?= $heroAttrs ?><?= section_style_attr($config, $heroStyle) ?>>
     <?php if (editor_mode()): ?>
         <div class="se-hero-bg-btn-wrap">
             <button type="button" class="se-image-btn se-hero-bg-btn" data-field="background_image">Change Background</button>

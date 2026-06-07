@@ -30,6 +30,7 @@ $repos = [
     'MediaRepository',
     'ReviewRepository',
     'ContactRepository',
+    'FormRepository',
     'NewsletterRepository',
     'UserRepository',
 ];

@@ -1,7 +1,7 @@
 <?php
 $grouped = MenuRepository::itemsGrouped(true);
 ?>
-<section id="menu" class="section-menu-preview">
+<section id="menu" class="section-menu-preview"<?= section_style_attr($config) ?>>
     <div class="container menu-preview-inner">
         <?php editable_text('title', $config['title'] ?? 'Our Menu', 'h2'); ?>
         <?php if (editor_mode()): ?>
@@ -40,11 +40,11 @@ $grouped = MenuRepository::itemsGrouped(true);
         <?php endif; ?>
         <?php if (!empty($config['link_to_full_menu']) && !editor_mode()): ?>
             <p class="text-center" style="margin-top:2rem;">
-                <a href="/menu.php" class="cta-button">View Full Menu</a>
+                <?php editable_cta('menu_link_text', 'menu_link_url', $config['menu_link_text'] ?? 'View Full Menu', $config['menu_link_url'] ?? '/menu.php'); ?>
             </p>
         <?php elseif (editor_mode() && !empty($config['link_to_full_menu'])): ?>
-            <p class="text-center se-static-preview" style="margin-top:2rem;">
-                <span class="cta-button">View Full Menu</span>
+            <p class="text-center" style="margin-top:2rem;">
+                <?php editable_cta('menu_link_text', 'menu_link_url', $config['menu_link_text'] ?? 'View Full Menu', $config['menu_link_url'] ?? '/menu.php'); ?>
             </p>
         <?php endif; ?>
     </div>

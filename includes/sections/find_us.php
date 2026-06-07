@@ -3,7 +3,7 @@ $max = (int) ($config['max_events'] ?? 5);
 $events = array_slice(EventRepository::upcoming(true), 0, $max);
 $fb = Settings::get('facebook_url');
 ?>
-<section id="find-us" class="container section-find-us">
+<section id="find-us" class="container section-find-us"<?= section_style_attr($config) ?>>
     <?php editable_text('title', $config['title'] ?? 'Where to Find Us', 'h2'); ?>
     <?php if (editor_mode()): ?>
         <?php editor_placeholder(
@@ -23,16 +23,16 @@ $fb = Settings::get('facebook_url');
         </div>
     <?php endif; ?>
     <?php editable_multiline('text', $config['text'] ?? '', 'p', 'find-us-text'); ?>
-    <?php if (!editor_mode()): ?>
-        <p class="text-center">
-            <a href="/find-us.php" class="cta-button">Full Schedule & Map</a>
+    <p class="text-center">
+        <?php editable_cta('schedule_button_text', 'schedule_button_link', $config['schedule_button_text'] ?? 'Full Schedule & Map', $config['schedule_button_link'] ?? '/find-us.php'); ?>
+    </p>
+    <?php if (!empty($config['show_facebook_button']) && ($fb || editor_mode())): ?>
+        <p class="text-center" style="margin-top:1rem;">
+            <?php if (editor_mode()): ?>
+                <span class="cta-button cta-outline se-editable se-editable-trigger" data-field="facebook_button_text" data-edit-mode="plain" role="button" tabindex="0"><?= e($config['facebook_button_text'] ?? 'Visit Facebook') ?></span>
+            <?php elseif ($fb): ?>
+                <a href="<?= e($fb) ?>" target="_blank" rel="noopener noreferrer" class="cta-button cta-outline"><?= e($config['facebook_button_text'] ?? 'Visit Facebook') ?></a>
+            <?php endif; ?>
         </p>
-        <?php if (!empty($config['show_facebook_button']) && $fb): ?>
-            <p class="text-center" style="margin-top:1rem;">
-                <a href="<?= e($fb) ?>" target="_blank" rel="noopener noreferrer" class="cta-button cta-outline">Visit Facebook</a>
-            </p>
-        <?php endif; ?>
-    <?php else: ?>
-        <p class="text-center se-static-preview"><span class="cta-button">Full Schedule & Map</span></p>
     <?php endif; ?>
 </section>

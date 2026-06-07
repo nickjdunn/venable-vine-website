@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { title: 'Menu', body: 'Add categories and items with prices, photos, and dietary tags. Toggle items on/off without deleting them.', highlight: '.admin-nav-link[href*="menu"]', nav: '/admin/menu.php' },
         { title: 'Events', body: 'Tell customers where the truck will be! Add date, time, and location. Use "Use Current Location" on your phone.', highlight: '.admin-nav-link[href*="events"]', nav: '/admin/events.php' },
         { title: 'Media Library', body: 'Upload and manage image files for the whole site (logo, hero, menu, etc.). Homepage gallery photos are chosen separately in Page Builder. You can upload multiple photos at once.', highlight: '.admin-nav-link[href*="gallery"]', nav: '/admin/gallery.php' },
+        { title: 'Contacts', body: 'Read contact messages and build custom forms in Form Builder. Add those forms to your homepage in Page Builder.', highlight: '.admin-nav-link[href*="contacts"]', nav: '/admin/contacts.php' },
         { title: 'Settings', body: 'Choose your logo and favicon from the Media Library, set social media links, and add your Google Maps API key.', highlight: '.admin-nav-link[href*="settings"]', nav: '/admin/settings.php' },
         { title: 'You\'re all set!', body: 'Visit your live site to see how it looks. Start by adding your next event and updating the homepage in Page Builder.', highlight: null },
     ];

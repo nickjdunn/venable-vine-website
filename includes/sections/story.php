@@ -1,7 +1,7 @@
 <?php
 $imagePath = resolve_image_path($config['image'] ?? default_brand_images()['story']);
 ?>
-<section id="story" class="section-story">
+<section id="story" class="section-story"<?= section_style_attr($config) ?>>
     <div class="container">
         <?php editable_text('title', $config['title'] ?? 'Our Story', 'h2'); ?>
         <div class="story-content">

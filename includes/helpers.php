@@ -365,6 +365,8 @@ function default_section_config(string $type): array
             'coming_soon_title' => 'Coming Soon!',
             'coming_soon_text' => 'Get ready for authentic Agua Frescas, classic Fresas con Crema, and our signature Snowflake Refreshers.',
             'link_to_full_menu' => true,
+            'menu_link_text' => 'View Full Menu',
+            'menu_link_url' => '/menu.php',
         ],
         'gallery' => ['title' => 'A Glimpse of Our Goodness', 'photos' => []],
         'reviews' => ['title' => 'What Our Customers Say'],
@@ -373,16 +375,20 @@ function default_section_config(string $type): array
             'text' => 'For all other news, follow us on Facebook!',
             'show_facebook_button' => true,
             'max_events' => 5,
+            'schedule_button_text' => 'Full Schedule & Map',
+            'schedule_button_link' => '/find-us.php',
+            'facebook_button_text' => 'Visit Facebook',
         ],
         'contact' => [
             'title' => 'Get In Touch',
             'subtitle' => 'We would love to hear from you!',
-            'show_contact' => true,
-            'show_review' => true,
+            'forms' => [],
         ],
         'newsletter' => [
             'title' => 'Stay in the Loop',
             'subtitle' => 'Sign up for updates on where we\'ll be and what\'s new on the menu.',
+            'email_placeholder' => 'Your email address',
+            'submit_text' => 'Subscribe',
         ],
         'social' => ['title' => 'Follow Us'],
         'custom_html' => ['html' => ''],
@@ -687,13 +693,26 @@ function sanitize_block_config(string $type, array $config): array
             $config[$key] = sanitize_rich_text($config[$key]);
         }
     }
-    foreach (['title', 'coming_soon_title', 'cta_text'] as $key) {
+    foreach (['title', 'coming_soon_title', 'cta_text', 'menu_link_text', 'schedule_button_text', 'facebook_button_text', 'email_placeholder', 'submit_text'] as $key) {
         if (isset($config[$key])) {
             $config[$key] = strip_tags((string) $config[$key]);
         }
     }
     if ($type === 'gallery') {
         $config['photos'] = normalize_gallery_photos($config['photos'] ?? []);
+    }
+    if ($type === 'contact') {
+        $config['forms'] = normalize_contact_forms($config['forms'] ?? []);
+    }
+    foreach (['background_color'] as $key) {
+        if (!empty($config[$key]) && !preg_match('/^#[0-9A-Fa-f]{3,8}$/', (string) $config[$key])) {
+            unset($config[$key]);
+        }
+    }
+    foreach (['padding_top', 'padding_bottom'] as $key) {
+        if (isset($config[$key]) && $config[$key] !== '' && $config[$key] !== null) {
+            $config[$key] = max(0, min(10, (float) $config[$key]));
+        }
     }
     foreach (['background_image', 'logo_image', 'image'] as $key) {
         if (!empty($config[$key])) {
@@ -716,6 +735,102 @@ function migrate_homepage_gallery_layout(array $layout): array
                 $before = json_encode($block['config']['photos'] ?? []);
                 $block['config'] = ensure_gallery_config_photos($block['config'] ?? []);
                 if (json_encode($block['config']['photos'] ?? []) !== $before) {
+                    $changed = true;
+                }
+            }
+        }
+    }
+    unset($row, $col, $block);
+    return [$layout, $changed];
+}
+
+/** Build inline style attribute from config, optionally merging extra CSS. */
+function section_style_attr(array $config, string $extraCss = ''): string
+{
+    $styles = [];
+    if ($extraCss !== '') {
+        $styles[] = rtrim($extraCss, ';');
+    }
+    if (!empty($config['background_color'])) {
+        $styles[] = 'background-color:' . $config['background_color'];
+    }
+    if (isset($config['padding_top']) && $config['padding_top'] !== '' && $config['padding_top'] !== null) {
+        $styles[] = 'padding-top:' . (float) $config['padding_top'] . 'rem';
+    }
+    if (isset($config['padding_bottom']) && $config['padding_bottom'] !== '' && $config['padding_bottom'] !== null) {
+        $styles[] = 'padding-bottom:' . (float) $config['padding_bottom'] . 'rem';
+    }
+    return $styles ? ' style="' . e(implode(';', $styles)) . '"' : '';
+}
+
+/** Shared section appearance settings for the page builder gear menu. */
+function section_style_settings(): array
+{
+    return [
+        ['key' => 'background_color', 'label' => 'Background color', 'type' => 'color'],
+        ['key' => 'padding_top', 'label' => 'Padding above (rem)', 'type' => 'number', 'min' => 0, 'max' => 10, 'step' => 0.5],
+        ['key' => 'padding_bottom', 'label' => 'Padding below (rem)', 'type' => 'number', 'min' => 0, 'max' => 10, 'step' => 0.5],
+    ];
+}
+
+/** Normalize contact section form slots. */
+function normalize_contact_forms(mixed $forms): array
+{
+    if (!is_array($forms)) {
+        return [];
+    }
+    $out = [];
+    foreach ($forms as $slot) {
+        if (!is_array($slot)) {
+            continue;
+        }
+        $formId = (int) ($slot['form_id'] ?? 0);
+        if ($formId <= 0) {
+            continue;
+        }
+        $out[] = [
+            'form_id' => $formId,
+            'tab_label' => strip_tags((string) ($slot['tab_label'] ?? '')),
+        ];
+    }
+    return $out;
+}
+
+/** Migrate legacy contact toggles or seed default forms. */
+function ensure_contact_config_forms(array $config): array
+{
+    if (!empty(normalize_contact_forms($config['forms'] ?? []))) {
+        $config['forms'] = normalize_contact_forms($config['forms']);
+        return $config;
+    }
+    FormRepository::seedDefaults();
+    $forms = [];
+    $showContact = !isset($config['show_contact']) || $config['show_contact'];
+    $showReview = !isset($config['show_review']) || $config['show_review'];
+    if ($showContact) {
+        $forms[] = ['form_id' => FormRepository::defaultContactFormId(), 'tab_label' => 'Contact Us'];
+    }
+    if ($showReview) {
+        $forms[] = ['form_id' => FormRepository::defaultReviewFormId(), 'tab_label' => 'Leave a Review'];
+    }
+    $config['forms'] = $forms;
+    unset($config['show_contact'], $config['show_review']);
+    return $config;
+}
+
+/** Migrate contact section forms from legacy toggles into config. */
+function migrate_homepage_contact_layout(array $layout): array
+{
+    $changed = false;
+    foreach ($layout['rows'] ?? [] as &$row) {
+        foreach ($row['columns'] ?? [] as &$col) {
+            foreach ($col['blocks'] ?? [] as &$block) {
+                if (($block['type'] ?? '') !== 'contact') {
+                    continue;
+                }
+                $before = json_encode($block['config'] ?? []);
+                $block['config'] = ensure_contact_config_forms($block['config'] ?? []);
+                if (json_encode($block['config']) !== $before) {
                     $changed = true;
                 }
             }
