@@ -26,7 +26,7 @@ $fb = Settings::get('facebook_url');
     <p class="text-center">
         <?php editable_cta('schedule_button_text', 'schedule_button_link', $config['schedule_button_text'] ?? 'Full Schedule & Map', $config['schedule_button_link'] ?? '/find-us.php'); ?>
     </p>
-    <?php if (!empty($config['show_facebook_button']) && ($fb || editor_mode())): ?>
+    <?php if (!empty($config['show_facebook_button'])): ?>
         <p class="text-center" style="margin-top:1rem;">
             <?php if (editor_mode()): ?>
                 <span class="cta-button cta-outline se-editable se-editable-trigger" data-field="facebook_button_text" data-edit-mode="plain" role="button" tabindex="0"><?= e($config['facebook_button_text'] ?? 'Visit Facebook') ?></span>
