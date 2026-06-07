@@ -5,6 +5,7 @@
     --text-dark: #1F2937;
     --bg: #f5f0e8;
     --sidebar-w: 220px;
+    --btn-radius: 6px;
 }
 
 * { box-sizing: border-box; }
@@ -47,7 +48,7 @@ a { color: var(--secondary-gold); }
 
 .btn {
     display: inline-block; background: var(--secondary-gold); color: white; border: none;
-    padding: 0.55rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;
+    padding: 0.55rem 1rem; border-radius: var(--btn-radius); cursor: pointer; font-weight: 600;
     text-decoration: none; font-size: 0.9rem; line-height: 1.4;
 }
 .btn:hover { background: #b45309; }

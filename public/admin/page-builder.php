@@ -58,13 +58,15 @@ require ROOT . '/includes/templates/admin-header.php';
     <div class="se-header-actions">
         <a href="/" target="_blank" class="btn btn-outline btn-sm">View Live Site</a>
         <button type="button" id="reset-layout-btn" class="btn btn-outline btn-sm">Reset to Defaults</button>
-        <button type="button" id="save-layout-btn" class="btn btn-success">Save Page</button>
     </div>
 </div>
 
 <div class="se-editor-wrap">
     <?php render_homepage_editor($pbLayout); ?>
 </div>
+
+<button type="button" id="save-layout-btn" class="se-save-fab" aria-live="polite">Save Page</button>
+<div id="se-save-toast" class="se-save-toast" role="status" aria-live="polite" hidden></div>
 <div id="se-status"></div>
 
 <script>window.EDITOR_INITIAL = <?= json_encode($editorBootstrap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE) ?>;</script>

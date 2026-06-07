@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveBtn = document.getElementById('save-layout-btn');
     const resetBtn = document.getElementById('reset-layout-btn');
     const statusEl = document.getElementById('se-status');
+    const saveToast = document.getElementById('se-save-toast');
+    let saveToastTimer = null;
 
     if (!canvas || !window.EDITOR_INITIAL?.success) {
         return;
@@ -571,6 +573,9 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn?.addEventListener('click', async () => {
         collectFromDom();
         saveBtn.disabled = true;
+        saveBtn.classList.add('is-saving');
+        saveBtn.textContent = 'Saving…';
+        hideSaveToast();
         setStatus('Saving homepage…', '');
         try {
             const layout = sectionsToLayout();
@@ -581,8 +586,19 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (!data.success) throw new Error(data.message);
             clientLog('save success', { rows: layout.rows.length });
+            saveBtn.classList.remove('is-saving');
+            saveBtn.classList.add('is-saved');
+            saveBtn.textContent = '✓ Saved!';
+            showSaveToast('Homepage saved successfully!', 'success');
             setStatus('Homepage saved!', 'success');
+            setTimeout(() => {
+                saveBtn.classList.remove('is-saved');
+                saveBtn.textContent = 'Save Page';
+            }, 3000);
         } catch (err) {
+            saveBtn.classList.remove('is-saving');
+            saveBtn.textContent = 'Save Page';
+            showSaveToast(err.message || 'Save failed', 'error');
             setStatus(err.message || 'Save failed', 'error');
         }
         saveBtn.disabled = false;
@@ -608,6 +624,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!statusEl) return;
         statusEl.textContent = msg;
         statusEl.className = 'alert ' + (type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : '');
+    }
+
+    function showSaveToast(message, type) {
+        if (!saveToast) return;
+        clearTimeout(saveToastTimer);
+        saveToast.hidden = false;
+        saveToast.textContent = message;
+        saveToast.className = 'se-save-toast ' + (type === 'success' ? 'is-success' : 'is-error');
+        saveToastTimer = setTimeout(() => hideSaveToast(), type === 'success' ? 4000 : 6000);
+    }
+
+    function hideSaveToast() {
+        if (!saveToast) return;
+        saveToast.hidden = true;
+        saveToast.textContent = '';
     }
 
     function esc(s) {

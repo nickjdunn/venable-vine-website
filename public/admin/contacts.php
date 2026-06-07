@@ -24,6 +24,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Updated.');
             redirect('/admin/contacts.php');
         }
+        if ($action === 'create_message') {
+            $name = trim($_POST['name'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $message = trim($_POST['message'] ?? '');
+            $status = ($_POST['status'] ?? 'new') === 'read' ? 'read' : 'new';
+            if ($name === '' || $email === '' || $message === '') {
+                throw new RuntimeException('Name, email, and message are required.');
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Please enter a valid email address.');
+            }
+            ContactRepository::create(compact('name', 'email', 'message', 'status'));
+            flash('success', 'Contact message added.');
+            redirect('/admin/contacts.php');
+        }
         if ($action === 'save_form') {
             $id = (int) ($_POST['id'] ?? 0);
             $fields = [];
@@ -229,6 +244,29 @@ require ROOT . '/includes/templates/admin-header.php';
     <?php endif; ?>
 
 <?php else: ?>
+    <div class="card">
+        <h3>Add Contact Manually</h3>
+        <p class="pb-hint" style="text-align:left;margin-bottom:1rem;">Record a phone call, in-person note, or other message that did not come through the website form.</p>
+        <form method="post">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="action" value="create_message">
+            <label>Name</label>
+            <input type="text" name="name" required>
+            <label>Email</label>
+            <input type="email" name="email" required>
+            <label>Message</label>
+            <textarea name="message" rows="5" required></textarea>
+            <label>Status</label>
+            <select name="status">
+                <option value="new">New</option>
+                <option value="read">Read</option>
+            </select>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">Add Message</button>
+            </div>
+        </form>
+    </div>
+
     <h3>New Messages</h3>
     <?php if (empty($new)): ?><p>No new messages.</p><?php else: foreach ($new as $c): ?>
         <div class="card">

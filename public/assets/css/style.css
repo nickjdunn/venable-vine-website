@@ -6,6 +6,7 @@
     --text-dark: #1F2937;
     --background-light: #FEFDFB;
     --background-cream: #FDF6E8;
+    --btn-radius: 6px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,7 +52,7 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 
 .cta-button {
     display: inline-block; background-color: var(--primary-yellow); color: var(--text-dark);
-    padding: 1rem 2.5rem; border-radius: 50px; text-decoration: none; font-weight: 700;
+    padding: 1rem 2.5rem; border-radius: var(--btn-radius); text-decoration: none; font-weight: 700;
     font-size: 1.1rem; transition: transform 0.3s, background-color 0.3s;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: none; cursor: pointer;
 }
@@ -162,7 +163,7 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 .view-tabs { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 2rem; flex-wrap: wrap; }
 .view-tab {
     padding: 0.75rem 1.5rem; border: 2px solid var(--secondary-gold); background: white;
-    color: var(--secondary-gold); border-radius: 50px; cursor: pointer; font-weight: 700; transition: all 0.3s;
+    color: var(--secondary-gold); border-radius: var(--btn-radius); cursor: pointer; font-weight: 700; transition: all 0.3s;
 }
 .view-tab.active, .view-tab:hover { background: var(--secondary-gold); color: white; }
 .view-panel { display: none; }
@@ -178,7 +179,7 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 .choice-btn {
     padding: 1rem 2rem; font-size: 1rem; font-weight: 700; cursor: pointer;
     border: 2px solid var(--secondary-gold); background: white; color: var(--secondary-gold);
-    border-radius: 50px; transition: all 0.3s;
+    border-radius: var(--btn-radius); transition: all 0.3s;
 }
 .choice-btn.active, .choice-btn:hover { background: var(--secondary-gold); color: white; }
 .form-container { display: none; text-align: left; }
@@ -189,7 +190,7 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 }
 .submit-btn {
     background: var(--accent-green); color: white; font-size: 1rem; padding: 1rem 2.5rem;
-    border-radius: 50px; border: none; cursor: pointer; margin-top: 1rem;
+    border-radius: var(--btn-radius); border: none; cursor: pointer; margin-top: 1rem; font-weight: 700;
 }
 .rating { display: flex; flex-direction: row-reverse; justify-content: center; gap: 0.5rem; margin: 0.5rem 0; }
 .rating input { display: none; }
@@ -207,7 +208,7 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 .section-newsletter h2::after { background: var(--primary-yellow); }
 .newsletter-inner { max-width: 600px; margin: 0 auto; text-align: center; }
 .newsletter-row { display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap; }
-.newsletter-row input { flex: 1; min-width: 200px; padding: 0.85rem 1rem; border-radius: 50px; border: none; }
+.newsletter-row input { flex: 1; min-width: 200px; padding: 0.85rem 1rem; border-radius: var(--btn-radius); border: none; }
 .newsletter-row .submit-btn { margin-top: 0; white-space: nowrap; }
 
 /* Social */
@@ -215,7 +216,7 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 .social-links { display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; }
 .social-link {
     color: var(--secondary-gold); font-weight: 700; text-decoration: none; font-size: 1.1rem;
-    padding: 0.5rem 1.25rem; border: 2px solid var(--secondary-gold); border-radius: 50px; transition: all 0.3s;
+    padding: 0.5rem 1.25rem; border: 2px solid var(--secondary-gold); border-radius: var(--btn-radius); transition: all 0.3s;
 }
 .social-link:hover { background: var(--secondary-gold); color: white; }
 

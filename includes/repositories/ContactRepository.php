@@ -20,6 +20,9 @@ class ContactRepository
 
     public static function create(array $data): int
     {
+        $status = in_array($data['status'] ?? '', ['new', 'read'], true)
+            ? $data['status']
+            : 'new';
         $stmt = Database::connection()->prepare(
             'INSERT INTO contacts (name, email, message, status) VALUES (?, ?, ?, ?)'
         );
@@ -27,7 +30,7 @@ class ContactRepository
             trim($data['name']),
             trim($data['email']),
             trim($data['message']),
-            'new',
+            $status,
         ]);
         return (int) Database::connection()->lastInsertId();
     }

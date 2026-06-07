@@ -31,14 +31,17 @@ class ReviewRepository
 
     public static function create(array $data): int
     {
+        $status = in_array($data['status'] ?? '', ['pending', 'approved'], true)
+            ? $data['status']
+            : 'pending';
         $stmt = Database::connection()->prepare(
             'INSERT INTO reviews (name, rating, text, status) VALUES (?, ?, ?, ?)'
         );
         $stmt->execute([
             trim($data['name']),
-            (int) $data['rating'],
+            max(1, min(5, (int) $data['rating'])),
             trim($data['text']),
-            'pending',
+            $status,
         ]);
         return (int) Database::connection()->lastInsertId();
     }

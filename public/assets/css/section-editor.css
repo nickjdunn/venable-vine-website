@@ -152,7 +152,7 @@ body.admin-body.se-editor-page {
     background: white;
     border: 1px solid var(--secondary-gold, #D97706);
     color: var(--secondary-gold, #D97706);
-    border-radius: 4px;
+    border-radius: var(--btn-radius, 6px);
     padding: 0.35rem 0.75rem;
     font-size: 0.8rem;
     font-weight: 700;
@@ -262,6 +262,76 @@ body.admin-body.se-editor-page {
 }
 
 #se-status { margin-top: 0.75rem; }
+
+/* Floating save button */
+.se-save-fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 500;
+    background: var(--primary-yellow, #FACC15);
+    color: var(--text-dark, #1F2937);
+    border: 3px solid var(--secondary-gold, #D97706);
+    padding: 1rem 1.75rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-family: 'Lato', sans-serif;
+    border-radius: var(--btn-radius, 6px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, border-color 0.2s;
+}
+.se-save-fab:hover:not(:disabled) {
+    background: #FFD93D;
+    transform: translateY(-2px);
+}
+.se-save-fab:disabled {
+    opacity: 0.75;
+    cursor: wait;
+}
+.se-save-fab.is-saving {
+    background: #fde68a;
+}
+.se-save-fab.is-saved {
+    background: #22c55e;
+    color: white;
+    border-color: #16a34a;
+}
+.se-save-toast {
+    position: fixed;
+    bottom: 5.25rem;
+    right: 1.5rem;
+    z-index: 501;
+    max-width: 320px;
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--btn-radius, 6px);
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    animation: se-toast-in 0.25s ease;
+}
+.se-save-toast[hidden] { display: none !important; }
+.se-save-toast.is-success {
+    background: #dcfce7;
+    color: #166534;
+    border: 2px solid #86efac;
+}
+.se-save-toast.is-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 2px solid #fca5a5;
+}
+@keyframes se-toast-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Match public button shape in editor canvas */
+.se-canvas .cta-button,
+.se-canvas .choice-btn,
+.se-canvas .submit-btn {
+    border-radius: var(--btn-radius, 6px);
+}
 
 /* Inline editing triggers */
 .se-editable-trigger,
