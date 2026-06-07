@@ -50,12 +50,28 @@ function install_tables_exist(): bool
     }
 }
 
+function install_schema_path(): string
+{
+    $candidates = [
+        ROOT . '/sql/schema.sql',
+    ];
+    $repoMatches = glob(ROOT . '/repositories/*/sql/schema.sql') ?: [];
+    $candidates = array_merge($candidates, $repoMatches);
+
+    foreach ($candidates as $path) {
+        if (file_exists($path)) {
+            return $path;
+        }
+    }
+
+    throw new RuntimeException(
+        'Missing sql/schema.sql. In cPanel Git, Pull and Deploy the latest code, then try again.'
+    );
+}
+
 function install_run_schema(): void
 {
-    $schemaPath = ROOT . '/sql/schema.sql';
-    if (!file_exists($schemaPath)) {
-        throw new RuntimeException('Missing sql/schema.sql');
-    }
+    $schemaPath = install_schema_path();
     $sql = file_get_contents($schemaPath);
     $sql = preg_replace('/^--.*$/m', '', $sql);
     $pdo = Database::connection();
