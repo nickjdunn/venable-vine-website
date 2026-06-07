@@ -27,7 +27,7 @@ function fix_layout_image_paths(array $layout): array
         }
     }
     unset($row, $col, $block);
-    return $layout;
+    return normalize_layout($layout);
 }
 
 function seed_media_and_settings(): void
@@ -53,6 +53,7 @@ function seed_media_and_settings(): void
 try {
     if ($action === 'get_builder_data') {
         seed_media_and_settings();
+        PageRepository::ensureLayoutsPersisted($pageId);
         $layoutDesktop = fix_layout_image_paths(PageRepository::getLayout($pageId, 'desktop'));
         $layoutMobile = fix_layout_image_paths(PageRepository::getLayout($pageId, 'mobile'));
         $categories = MenuRepository::categories(false);
@@ -61,11 +62,24 @@ try {
             'success' => true,
             'layout_desktop' => $layoutDesktop,
             'layout_mobile' => $layoutMobile,
+            'mobile_persisted' => PageRepository::hasStoredLayout($pageId, 'mobile'),
             'block_types' => block_types(),
             'categories' => $categories,
             'gallery' => $gallery,
             'asset_images' => list_asset_images(),
         ]);
+    }
+
+    if ($action === 'preview_block' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        Csrf::requireValid();
+        $block = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($block) || empty($block['type'])) {
+            json_response(['success' => false, 'message' => 'Invalid block'], 400);
+        }
+        ob_start();
+        render_block($block);
+        $html = ob_get_clean();
+        json_response(['success' => true, 'html' => $html]);
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -85,6 +99,13 @@ try {
             }
             PageRepository::saveLayout($pageId, $viewport, fix_layout_image_paths($payload['layout']));
             json_response(['success' => true, 'message' => ucfirst($viewport) . ' layout saved']);
+        })(),
+        'reset_mobile' => (function () use ($pageId) {
+            Csrf::requireValid();
+            $desktop = fix_layout_image_paths(PageRepository::getLayout($pageId, 'desktop'));
+            $mobile = mobile_layout_from_layout($desktop);
+            PageRepository::saveLayout($pageId, 'mobile', $mobile);
+            json_response(['success' => true, 'layout_mobile' => $mobile]);
         })(),
         default => json_response(['success' => false, 'message' => 'Unknown action'], 400),
     };

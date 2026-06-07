@@ -206,7 +206,21 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 
 /* Page layout (desktop / mobile builder) */
 .layout-view.layout-mobile { display: none; }
-.layout-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; padding: 2rem 1rem; max-width: 1100px; margin: 0 auto; }
+.layout-row--columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem;
+    padding: 2rem 1rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+.layout-row--full {
+    display: block;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+}
+.layout-row--full .layout-block--full { width: 100%; }
 .layout-column { min-width: 0; }
 .block-title.align-center, .block-button.align-center { text-align: center; }
 .block-title.align-right, .block-button.align-right { text-align: right; }
@@ -219,7 +233,7 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 @media (max-width: 768px) {
     .layout-view.layout-desktop { display: none; }
     .layout-view.layout-mobile { display: block; }
-    .layout-row { grid-template-columns: 1fr; }
+    .layout-row--columns { grid-template-columns: 1fr; padding: 1.5rem 1rem; }
 }
 
 /* Lightbox */

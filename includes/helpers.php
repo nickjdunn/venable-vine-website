@@ -242,15 +242,14 @@ function default_layout_from_sections(array $sections): array
         }
         $rows[] = [
             'id' => 'row_' . ($sec['id'] ?? uniqid()),
+            'layout' => 'full',
             'columns' => [
-                ['id' => 'col_1', 'blocks' => [[
+                ['id' => 'col_' . ($sec['id'] ?? uniqid()), 'blocks' => [[
                     'id' => 'block_' . ($sec['id'] ?? uniqid()),
                     'type' => $type,
                     'config' => $config,
                     'active' => (bool) ($sec['is_active'] ?? true),
                 ]]],
-                ['id' => 'col_2', 'blocks' => []],
-                ['id' => 'col_3', 'blocks' => []],
             ],
         ];
     }
@@ -308,6 +307,106 @@ function default_section_config(string $type): array
         'social' => ['title' => 'Follow Us'],
         'custom_html' => ['html' => ''],
         default => [],
+    };
+}
+
+function module_block_types(): array
+{
+    return array_keys(block_types()['modules']);
+}
+
+function is_module_block(string $type): bool
+{
+    return in_array($type, module_block_types(), true);
+}
+
+/** Ensure every row has a layout mode and valid column structure. */
+function normalize_layout(array $layout): array
+{
+    $rows = [];
+    foreach ($layout['rows'] ?? [] as $row) {
+        $layoutMode = $row['layout'] ?? 'full';
+        if ($layoutMode !== 'columns') {
+            $layoutMode = 'full';
+        }
+        $columns = $row['columns'] ?? [];
+        if ($layoutMode === 'full') {
+            if (empty($columns)) {
+                $columns = [['id' => 'col_1', 'blocks' => []]];
+            }
+            $columns = [array_merge(['id' => $columns[0]['id'] ?? 'col_1', 'blocks' => []], $columns[0])];
+        } else {
+            while (count($columns) < 3) {
+                $columns[] = ['id' => 'col_' . (count($columns) + 1), 'blocks' => []];
+            }
+            $columns = array_slice($columns, 0, 3);
+        }
+        $rows[] = [
+            'id' => $row['id'] ?? ('row_' . uniqid()),
+            'layout' => $layoutMode,
+            'columns' => $columns,
+        ];
+    }
+    return ['rows' => $rows];
+}
+
+/** Flatten desktop rows into single-column full-width rows for mobile. */
+function mobile_layout_from_layout(array $desktop): array
+{
+    $desktop = normalize_layout($desktop);
+    $rows = [];
+    foreach ($desktop['rows'] as $row) {
+        if (($row['layout'] ?? 'full') === 'columns') {
+            foreach ($row['columns'] as $col) {
+                foreach ($col['blocks'] ?? [] as $block) {
+                    $rows[] = [
+                        'id' => 'row_' . uniqid(),
+                        'layout' => 'full',
+                        'columns' => [[
+                            'id' => 'col_' . uniqid(),
+                            'blocks' => [$block],
+                        ]],
+                    ];
+                }
+            }
+        } else {
+            foreach ($row['columns'][0]['blocks'] ?? [] as $block) {
+                $rows[] = [
+                    'id' => 'row_' . uniqid(),
+                    'layout' => 'full',
+                    'columns' => [[
+                        'id' => 'col_' . uniqid(),
+                        'blocks' => [$block],
+                    ]],
+                ];
+            }
+        }
+    }
+    return ['rows' => $rows];
+}
+
+/** Short preview line for page builder cards. */
+function block_preview_text(array $block): string
+{
+    $type = $block['type'] ?? '';
+    $c = $block['config'] ?? [];
+    return match ($type) {
+        'hero' => (string) ($c['title'] ?? 'Hero Banner'),
+        'story' => (string) ($c['title'] ?? 'Story'),
+        'title' => (string) ($c['text'] ?? 'Title'),
+        'text' => mb_substr(strip_tags((string) ($c['content'] ?? 'Text block')), 0, 60),
+        'image' => basename((string) ($c['src'] ?? 'Image')),
+        'button' => (string) ($c['text'] ?? 'Button'),
+        'menu_category' => (string) ($c['title'] ?: 'Menu Category'),
+        'menu_preview' => (string) ($c['title'] ?? 'Menu Preview'),
+        'gallery' => (string) ($c['title'] ?? 'Gallery'),
+        'reviews' => (string) ($c['title'] ?? 'Reviews'),
+        'find_us' => (string) ($c['title'] ?? 'Find Us'),
+        'contact' => (string) ($c['title'] ?? 'Contact'),
+        'newsletter' => (string) ($c['title'] ?? 'Newsletter'),
+        'social' => (string) ($c['title'] ?? 'Social Links'),
+        'spacer' => 'Spacer (' . (int) ($c['height'] ?? 40) . 'px)',
+        default => ucfirst(str_replace('_', ' ', $type)),
     };
 }
 

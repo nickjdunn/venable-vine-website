@@ -20,19 +20,67 @@ class PageRepository
         return $page ?: null;
     }
 
-    public static function getLayout(int $pageId, string $viewport = 'desktop'): array
+    public static function getStoredLayout(int $pageId, string $viewport = 'desktop'): array
     {
         self::ensureLayoutColumns();
         $col = $viewport === 'mobile' ? 'layout_mobile' : 'layout_desktop';
         $stmt = Database::connection()->prepare("SELECT {$col} AS layout FROM pages WHERE id = ?");
         $stmt->execute([$pageId]);
         $row = $stmt->fetch();
-        $layout = parse_json_config($row['layout'] ?? null);
-        if (!empty($layout['rows'])) {
-            return $layout;
+        return parse_json_config($row['layout'] ?? null);
+    }
+
+    public static function hasStoredLayout(int $pageId, string $viewport = 'desktop'): bool
+    {
+        return !empty(self::getStoredLayout($pageId, $viewport)['rows']);
+    }
+
+    /**
+     * Migrate legacy page_sections into layout JSON and generate mobile when missing.
+     * Returns true if anything was written to the database.
+     */
+    public static function ensureLayoutsPersisted(int $pageId): bool
+    {
+        self::ensureLayoutColumns();
+        $saved = false;
+        $desktop = self::getStoredLayout($pageId, 'desktop');
+        if (empty($desktop['rows'])) {
+            $sections = self::getSections($pageId);
+            if ($sections) {
+                $desktop = normalize_layout(default_layout_from_sections($sections));
+                self::saveLayout($pageId, 'desktop', $desktop);
+                $saved = true;
+            }
+        }
+        $mobile = self::getStoredLayout($pageId, 'mobile');
+        if (empty($mobile['rows'])) {
+            $source = !empty($desktop['rows'])
+                ? $desktop
+                : normalize_layout(default_layout_from_sections(self::getSections($pageId)));
+            if (!empty($source['rows'])) {
+                self::saveLayout($pageId, 'mobile', mobile_layout_from_layout($source));
+                $saved = true;
+            }
+        }
+        return $saved;
+    }
+
+    public static function getLayout(int $pageId, string $viewport = 'desktop'): array
+    {
+        self::ensureLayoutsPersisted($pageId);
+        $stored = self::getStoredLayout($pageId, $viewport);
+        if (!empty($stored['rows'])) {
+            return normalize_layout($stored);
         }
         if ($viewport === 'desktop') {
-            return default_layout_from_sections(self::getSections($pageId));
+            $sections = self::getSections($pageId);
+            if ($sections) {
+                return normalize_layout(default_layout_from_sections($sections));
+            }
+        }
+        $desktop = self::getLayout($pageId, 'desktop');
+        if (!empty($desktop['rows'])) {
+            return mobile_layout_from_layout($desktop);
         }
         return empty_layout();
     }
@@ -41,7 +89,7 @@ class PageRepository
     {
         self::ensureLayoutColumns();
         $col = $viewport === 'mobile' ? 'layout_mobile' : 'layout_desktop';
-        $json = json_encode($layout, JSON_UNESCAPED_UNICODE);
+        $json = json_encode(normalize_layout($layout), JSON_UNESCAPED_UNICODE);
         $stmt = Database::connection()->prepare("UPDATE pages SET {$col} = ? WHERE id = ?");
         $stmt->execute([$json, $pageId]);
     }
