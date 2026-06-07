@@ -270,12 +270,10 @@ function default_block_config(string $type): array
             'cta_text' => 'Find The Truck Today',
             'cta_link' => '/find-us.php',
         ],
-        'story' => [
+        'story' => array_merge([
             'title' => 'From Our Family to Yours',
-            'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients. Our kids loved the fresh-squeezed lemonade we\'d make on hot summer days, and we loved the honey from the hives buzzing in our backyard. We thought, why not share this?',
-            'paragraph2' => 'Every drink is muddled right in front of you. The \'Vine\' in our name represents the fresh fruit we use, and \'Venable\' is our family name—a promise of quality and care in everything we serve. We\'re proud to be family-owned and operated, and we can\'t wait to share a little piece of our home with you.',
             'image' => $img['story'],
-        ],
+        ], default_story_paragraphs()),
         'menu_category' => ['category_id' => 0, 'title' => ''],
         'menu_preview' => default_section_config('menu_preview'),
         'gallery' => ['title' => 'A Glimpse of Our Goodness', 'photos' => []],
@@ -353,12 +351,10 @@ function default_section_config(string $type): array
             'cta_text' => 'Find The Truck Today',
             'cta_link' => '/find-us.php',
         ],
-        'story' => [
+        'story' => array_merge([
             'title' => 'From Our Family to Yours',
-            'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients.',
-            'paragraph2' => 'Every drink is muddled right in front of you. We\'re proud to be family-owned and operated.',
             'image' => $img['story'],
-        ],
+        ], default_story_paragraphs()),
         'menu_preview' => [
             'title' => 'Taste the Sunshine',
             'show_coming_soon' => true,
@@ -735,6 +731,54 @@ function migrate_homepage_gallery_layout(array $layout): array
                 $before = json_encode($block['config']['photos'] ?? []);
                 $block['config'] = ensure_gallery_config_photos($block['config'] ?? []);
                 if (json_encode($block['config']['photos'] ?? []) !== $before) {
+                    $changed = true;
+                }
+            }
+        }
+    }
+    unset($row, $col, $block);
+    return [$layout, $changed];
+}
+
+/** Full default story copy (matches sql/schema.sql). */
+function default_story_paragraphs(): array
+{
+    return [
+        'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients. Our kids loved the fresh-squeezed lemonade we\'d make on hot summer days, and we loved the honey from the hives buzzing in our backyard. We thought, why not share this?',
+        'paragraph2' => 'Every drink is muddled right in front of you. The \'Vine\' in our name represents the fresh fruit we use, and \'Venable\' is our family name—a promise of quality and care in everything we serve. We\'re proud to be family-owned and operated, and we can\'t wait to share a little piece of our home with you.',
+    ];
+}
+
+/** Restore full story text when layout still has the shortened default. */
+function ensure_story_config_text(array $config): array
+{
+    $short = [
+        'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients.',
+        'paragraph2' => 'Every drink is muddled right in front of you. We\'re proud to be family-owned and operated.',
+    ];
+    $full = default_story_paragraphs();
+    if (trim($config['paragraph1'] ?? '') === $short['paragraph1']) {
+        $config['paragraph1'] = $full['paragraph1'];
+    }
+    if (trim($config['paragraph2'] ?? '') === $short['paragraph2']) {
+        $config['paragraph2'] = $full['paragraph2'];
+    }
+    return $config;
+}
+
+/** Migrate story block back to full default copy if truncated. */
+function migrate_homepage_story_layout(array $layout): array
+{
+    $changed = false;
+    foreach ($layout['rows'] ?? [] as &$row) {
+        foreach ($row['columns'] ?? [] as &$col) {
+            foreach ($col['blocks'] ?? [] as &$block) {
+                if (($block['type'] ?? '') !== 'story') {
+                    continue;
+                }
+                $before = json_encode($block['config'] ?? []);
+                $block['config'] = ensure_story_config_text($block['config'] ?? []);
+                if (json_encode($block['config'] ?? []) !== $before) {
                     $changed = true;
                 }
             }

@@ -66,8 +66,6 @@ require ROOT . '/includes/templates/admin-header.php';
 </div>
 
 <button type="button" id="save-layout-btn" class="se-save-fab" aria-live="polite">Save Page</button>
-<div id="se-save-toast" class="se-save-toast" role="status" aria-live="polite" hidden></div>
-<div id="se-status"></div>
 
 <script>window.EDITOR_INITIAL = <?= json_encode($editorBootstrap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE) ?>;</script>
 <?php require ROOT . '/includes/templates/admin-footer.php'; ?>

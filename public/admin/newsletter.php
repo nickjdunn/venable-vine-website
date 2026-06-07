@@ -13,7 +13,17 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::requireValid();
-    if (($_POST['action'] ?? '') === 'delete') {
+    $action = $_POST['action'] ?? '';
+    if ($action === 'add') {
+        $email = trim($_POST['email'] ?? '');
+        if ($email === '' || !NewsletterRepository::subscribe($email)) {
+            flash('error', 'Please enter a valid email address.');
+        } else {
+            flash('success', 'Subscriber added.');
+        }
+        redirect('/admin/newsletter.php');
+    }
+    if ($action === 'delete') {
         NewsletterRepository::delete((int) $_POST['id']);
         flash('success', 'Subscriber removed.');
     }
@@ -29,6 +39,21 @@ require ROOT . '/includes/templates/admin-header.php';
 <?php if (!$mailchimpReady): ?>
     <div class="alert alert-success">Collecting emails locally. Add Mailchimp keys in <a href="/admin/settings.php">Settings</a> to enable sync later.</div>
 <?php endif; ?>
+
+<div class="card">
+    <h3>Add Subscriber Manually</h3>
+    <p class="pb-hint" style="text-align:left;margin-bottom:1rem;">Add someone to your newsletter list who signed up in person or over the phone.</p>
+    <form method="post" class="form-actions" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-top:0;">
+        <?= Csrf::field() ?>
+        <input type="hidden" name="action" value="add">
+        <div style="flex:1;min-width:220px;">
+            <label>Email address</label>
+            <input type="email" name="email" required placeholder="name@example.com">
+        </div>
+        <button type="submit" class="btn btn-success">Add to List</button>
+    </form>
+</div>
+
 <div class="form-actions" style="margin-bottom:1rem;">
     <a href="?export=csv" class="btn">Export CSV</a>
     <form method="get" style="display:flex;gap:0.5rem;">

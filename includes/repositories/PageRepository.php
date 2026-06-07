@@ -71,6 +71,12 @@ class PageRepository
                 self::saveLayout($pageId, 'mobile', mobile_layout_from_layout($desktop));
                 $saved = true;
             }
+            [$desktop, $storyMigrated] = migrate_homepage_story_layout($desktop);
+            if ($storyMigrated) {
+                self::saveLayout($pageId, 'desktop', $desktop);
+                self::saveLayout($pageId, 'mobile', mobile_layout_from_layout($desktop));
+                $saved = true;
+            }
         }
         $mobile = self::getStoredLayout($pageId, 'mobile');
         if (empty($mobile['rows'])) {

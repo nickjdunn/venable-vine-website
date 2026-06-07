@@ -2,9 +2,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('editor-canvas');
     const saveBtn = document.getElementById('save-layout-btn');
     const resetBtn = document.getElementById('reset-layout-btn');
-    const statusEl = document.getElementById('se-status');
-    const saveToast = document.getElementById('se-save-toast');
-    let saveToastTimer = null;
 
     if (!canvas || !window.EDITOR_INITIAL?.success) {
         return;
@@ -574,9 +571,8 @@ document.addEventListener('DOMContentLoaded', () => {
         collectFromDom();
         saveBtn.disabled = true;
         saveBtn.classList.add('is-saving');
+        saveBtn.classList.remove('is-saved', 'is-error');
         saveBtn.textContent = 'Saving…';
-        hideSaveToast();
-        setStatus('Saving homepage…', '');
         try {
             const layout = sectionsToLayout();
             const { data } = await apiFetch('/api/page-builder.php?action=save_layout', {
@@ -589,24 +585,24 @@ document.addEventListener('DOMContentLoaded', () => {
             saveBtn.classList.remove('is-saving');
             saveBtn.classList.add('is-saved');
             saveBtn.textContent = '✓ Saved!';
-            showSaveToast('Homepage saved successfully!', 'success');
-            setStatus('Homepage saved!', 'success');
             setTimeout(() => {
                 saveBtn.classList.remove('is-saved');
                 saveBtn.textContent = 'Save Page';
             }, 3000);
         } catch (err) {
             saveBtn.classList.remove('is-saving');
-            saveBtn.textContent = 'Save Page';
-            showSaveToast(err.message || 'Save failed', 'error');
-            setStatus(err.message || 'Save failed', 'error');
+            saveBtn.classList.add('is-error');
+            saveBtn.textContent = 'Save failed';
+            setTimeout(() => {
+                saveBtn.classList.remove('is-error');
+                saveBtn.textContent = 'Save Page';
+            }, 3000);
         }
         saveBtn.disabled = false;
     });
 
     resetBtn?.addEventListener('click', async () => {
         if (!confirm('Reset the homepage to the original default layout? This replaces all sections and saves immediately.')) return;
-        setStatus('Resetting…', '');
         try {
             const { data } = await apiFetch('/api/page-builder.php?action=reset_layout', {
                 method: 'POST',
@@ -616,30 +612,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data.success) throw new Error(data.message);
             window.location.reload();
         } catch (err) {
-            setStatus(err.message || 'Reset failed', 'error');
+            alert(err.message || 'Reset failed');
         }
     });
-
-    function setStatus(msg, type) {
-        if (!statusEl) return;
-        statusEl.textContent = msg;
-        statusEl.className = 'alert ' + (type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : '');
-    }
-
-    function showSaveToast(message, type) {
-        if (!saveToast) return;
-        clearTimeout(saveToastTimer);
-        saveToast.hidden = false;
-        saveToast.textContent = message;
-        saveToast.className = 'se-save-toast ' + (type === 'success' ? 'is-success' : 'is-error');
-        saveToastTimer = setTimeout(() => hideSaveToast(), type === 'success' ? 4000 : 6000);
-    }
-
-    function hideSaveToast() {
-        if (!saveToast) return;
-        saveToast.hidden = true;
-        saveToast.textContent = '';
-    }
 
     function esc(s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

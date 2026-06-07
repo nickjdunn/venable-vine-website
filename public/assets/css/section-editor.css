@@ -297,33 +297,10 @@ body.admin-body.se-editor-page {
     color: white;
     border-color: #16a34a;
 }
-.se-save-toast {
-    position: fixed;
-    bottom: 5.25rem;
-    right: 1.5rem;
-    z-index: 501;
-    max-width: 320px;
-    padding: 0.85rem 1.25rem;
-    border-radius: var(--btn-radius, 6px);
-    font-weight: 700;
-    font-size: 0.95rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    animation: se-toast-in 0.25s ease;
-}
-.se-save-toast[hidden] { display: none !important; }
-.se-save-toast.is-success {
-    background: #dcfce7;
-    color: #166534;
-    border: 2px solid #86efac;
-}
-.se-save-toast.is-error {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 2px solid #fca5a5;
-}
-@keyframes se-toast-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+.se-save-fab.is-error {
+    background: #ef4444;
+    color: white;
+    border-color: #dc2626;
 }
 
 /* Match public button shape in editor canvas */
