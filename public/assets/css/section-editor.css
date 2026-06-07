@@ -248,6 +248,123 @@ body.admin-body.se-editor-page {
 
 #se-status { margin-top: 0.75rem; }
 
+/* Inline editing triggers */
+.se-editable-trigger,
+.se-editable-rich {
+    cursor: pointer;
+    border-radius: 3px;
+    transition: box-shadow 0.15s, background 0.15s;
+}
+.se-editable-trigger:hover,
+.se-editable-rich:hover,
+.se-editable-trigger:focus,
+.se-editable-rich:focus {
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.35);
+    outline: none;
+}
+.se-edit-hint {
+    color: #999;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+/* Rich text editor modal */
+.rte-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 11000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.rte-modal[hidden] { display: none !important; }
+.rte-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+}
+.rte-dialog {
+    position: relative;
+    background: #fff;
+    border-radius: 10px;
+    width: min(720px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+.rte-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #eee;
+}
+.rte-header h3 { margin: 0; font-size: 1.1rem; }
+.rte-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+}
+#rte-editor {
+    min-height: 220px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+.rte-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #eee;
+}
+
+/* Homepage gallery editor (page builder only) */
+.se-gallery-hint {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0 0 1rem;
+    text-align: center;
+}
+.se-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.se-gallery-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+    cursor: grab;
+}
+.se-gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.se-gallery-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0,0,0,0.65);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+}
+.se-gallery-add { display: block; margin: 0 auto; }
+
 @media (max-width: 768px) {
     .se-section-chrome { display: flex; position: relative; }
 }

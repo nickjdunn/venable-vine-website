@@ -36,9 +36,12 @@ $adminBodyClass = 'se-editor-page';
 $extraAdminCss = [
     asset('css/style.css'),
     asset('css/section-editor.css'),
+    'https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css',
 ];
 $extraAdminJs = [
     'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
+    'https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js',
+    asset('js/rich-text-editor.js'),
     asset('js/section-editor.js'),
 ];
 require ROOT . '/includes/templates/admin-header.php';
@@ -46,7 +49,7 @@ require ROOT . '/includes/templates/admin-header.php';
 <div class="se-header">
     <div>
         <h1>Page Builder</h1>
-        <p class="se-subtitle">Edit your homepage directly — click text or photos to change them. Drag section handles to reorder. Hidden sections stay saved but won't appear on the live site.</p>
+        <p class="se-subtitle">Edit your homepage directly — click text to open the editor, click photos to change them, and manage gallery photos in the Gallery section. Drag section handles to reorder. Hidden sections stay saved but won't appear on the live site.</p>
     </div>
     <div class="se-header-actions">
         <a href="/" target="_blank" class="btn btn-outline btn-sm">View Live Site</a>

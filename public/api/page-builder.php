@@ -19,10 +19,15 @@ function fix_layout_image_paths(array $layout): array
     foreach ($layout['rows'] ?? [] as &$row) {
         foreach ($row['columns'] ?? [] as &$col) {
             foreach ($col['blocks'] ?? [] as &$block) {
+                $type = $block['type'] ?? '';
+                $block['config'] = sanitize_block_config($type, $block['config'] ?? []);
                 foreach ($imageKeys as $key) {
                     if (!empty($block['config'][$key])) {
                         $block['config'][$key] = resolve_image_path($block['config'][$key]);
                     }
+                }
+                if ($type === 'gallery' && !empty($block['config']['photos'])) {
+                    $block['config']['photos'] = normalize_gallery_photos($block['config']['photos']);
                 }
             }
         }

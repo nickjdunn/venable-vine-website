@@ -1,6 +1,7 @@
 (function () {
     let modalEl = null;
     let activeCallback = null;
+    let pickerOptions = {};
 
     function esc(s) {
         const d = document.createElement('div');
@@ -39,6 +40,19 @@
             throw new Error(data.message || 'Upload failed');
         }
         return data.item;
+    }
+
+    async function uploadFiles(files) {
+        const fd = new FormData();
+        fd.append('action', 'upload_multiple');
+        fd.append('_csrf', window.CSRF_TOKEN || '');
+        [...files].forEach((file) => fd.append('photos[]', file));
+        const res = await fetch('/api/media.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const data = await res.json();
+        if (!data.success) {
+            throw new Error(data.message || 'Upload failed');
+        }
+        return data.items || [];
     }
 
     async function fetchLibrary() {
@@ -87,12 +101,15 @@
                 </div>
                 <div class="media-picker-toolbar">
                     <label class="btn btn-sm btn-outline media-picker-upload-label">
-                        Upload New Photo
-                        <input type="file" accept="image/*" data-media-modal-upload hidden>
+                        Upload Photos
+                        <input type="file" accept="image/*" data-media-modal-upload multiple hidden>
                     </label>
                     <span class="media-picker-status" data-media-status></span>
                 </div>
                 <div class="media-picker-grid" data-media-grid></div>
+                <div class="media-picker-footer" data-media-footer hidden>
+                    <button type="button" class="btn btn-sm btn-success" data-media-confirm>Add Selected</button>
+                </div>
             </div>`;
         document.body.appendChild(modalEl);
 
@@ -101,19 +118,22 @@
         });
 
         modalEl.querySelector('[data-media-modal-upload]')?.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+            const files = e.target.files;
+            if (!files?.length) return;
             const status = modalEl.querySelector('[data-media-status]');
-            status.textContent = 'Uploading…';
+            status.textContent = `Uploading ${files.length} photo(s)…`;
             try {
-                const item = await uploadFile(file);
-                status.textContent = 'Uploaded!';
-                if (activeCallback && item?.file_path) {
-                    activeCallback(item.file_path);
+                const items = files.length > 1 ? await uploadFiles(files) : [await uploadFile(files[0])];
+                status.textContent = `Uploaded ${items.length} photo(s)!`;
+                const paths = items.map((i) => i.file_path).filter(Boolean);
+                if (pickerOptions.multiple) {
+                    paths.forEach((p) => toggleSelectedPath(p));
+                    await renderGrid();
+                } else if (activeCallback && paths[0]) {
+                    activeCallback(paths[0]);
                     closeModal();
                 } else {
                     await renderGrid();
-                    status.textContent = '';
                 }
             } catch (err) {
                 status.textContent = err.message || 'Upload failed';
@@ -121,17 +141,33 @@
             e.target.value = '';
         });
 
+        modalEl.querySelector('[data-media-confirm]')?.addEventListener('click', () => {
+            if (!activeCallback || !pickerOptions.multiple) return;
+            const selected = [...modalEl.querySelectorAll('.media-picker-item.selected')].map((el) => el.dataset.path);
+            activeCallback(selected);
+            closeModal();
+        });
+
         return modalEl;
+    }
+
+    let selectedPaths = new Set();
+
+    function toggleSelectedPath(path) {
+        if (selectedPaths.has(path)) selectedPaths.delete(path);
+        else selectedPaths.add(path);
     }
 
     async function renderGrid() {
         const grid = modalEl.querySelector('[data-media-grid]');
         const status = modalEl.querySelector('[data-media-status]');
+        const footer = modalEl.querySelector('[data-media-footer]');
         grid.innerHTML = '<p class="media-picker-empty">Loading…</p>';
         try {
             const items = await fetchLibrary();
             if (!items.length) {
-                grid.innerHTML = '<p class="media-picker-empty">No photos yet. Upload one above or visit Media Library.</p>';
+                grid.innerHTML = '<p class="media-picker-empty">No photos yet. Upload above or visit Media Library.</p>';
+                footer.hidden = true;
                 return;
             }
             grid.innerHTML = '';
@@ -140,16 +176,24 @@
                 if (!path) return;
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'media-picker-item';
+                btn.className = 'media-picker-item' + (selectedPaths.has(path) ? ' selected' : '');
+                btn.dataset.path = path;
                 btn.innerHTML = `<img src="/${path.replace(/^\//, '')}" alt="${escAttr(item.alt_text || item.display_name || '')}">
                     <span>${esc(item.display_name || path.split('/').pop())}</span>`;
                 btn.addEventListener('click', () => {
-                    if (activeCallback) activeCallback(path);
-                    closeModal();
+                    if (pickerOptions.multiple) {
+                        toggleSelectedPath(path);
+                        btn.classList.toggle('selected', selectedPaths.has(path));
+                        footer.hidden = selectedPaths.size === 0;
+                    } else if (activeCallback) {
+                        activeCallback(path);
+                        closeModal();
+                    }
                 });
                 grid.appendChild(btn);
             });
-            status.textContent = '';
+            footer.hidden = !pickerOptions.multiple || selectedPaths.size === 0;
+            status.textContent = pickerOptions.multiple ? 'Select photos, then click Add Selected.' : '';
         } catch (err) {
             grid.innerHTML = `<p class="media-picker-empty">${esc(err.message)}</p>`;
         }
@@ -159,12 +203,19 @@
         if (!modalEl) return;
         modalEl.hidden = true;
         activeCallback = null;
+        pickerOptions = {};
+        selectedPaths = new Set();
         document.body.style.overflow = '';
     }
 
-    async function openLibrary(onSelect) {
+    async function openLibrary(onSelect, options = {}) {
         ensureModal();
         activeCallback = onSelect;
+        pickerOptions = options;
+        selectedPaths = new Set();
+        modalEl.querySelector('#media-picker-title').textContent = options.multiple
+            ? 'Choose Photos'
+            : 'Choose a Photo';
         modalEl.hidden = false;
         document.body.style.overflow = 'hidden';
         await renderGrid();
@@ -190,6 +241,7 @@
     window.MediaPicker = {
         init,
         upload: uploadFile,
+        uploadMultiple: uploadFiles,
         openLibrary,
         imageFieldHtml,
         bindField,

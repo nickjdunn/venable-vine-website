@@ -1,6 +1,7 @@
 <?php
 $adminTitle = ($adminTitle ?? 'Admin') . ' | Venable & Vine';
 $user = Auth::user();
+$favicon = upload_url(resolve_image_path(Settings::get('favicon_path') ?: default_brand_images()['favicon']));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -8,6 +9,7 @@ $user = Auth::user();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($adminTitle) ?></title>
+    <?php if ($favicon): ?><link rel="icon" href="<?= e($favicon) ?>"><?php endif; ?>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= asset('css/admin.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/media-picker.css') ?>">

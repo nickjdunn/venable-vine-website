@@ -30,6 +30,9 @@ function render_block_in_editor(array $block, string $rowId): void
 {
     $type = $block['type'] ?? '';
     $config = $block['config'] ?? [];
+    if ($type === 'gallery') {
+        $config = ensure_gallery_config_photos($config);
+    }
     $blockId = $block['id'] ?? '';
     $active = !isset($block['active']) || $block['active'];
     $labels = section_editor_labels();

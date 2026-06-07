@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function init() {
         bindEditableFields();
+        bindGalleryEditors();
         bindImageZones();
         bindHeroBackground();
         bindCtaLinks();
@@ -81,25 +82,119 @@ document.addEventListener('DOMContentLoaded', () => {
         clientLog('init', { sections: sections.length });
     }
 
+    function stripTags(html) {
+        const d = document.createElement('div');
+        d.innerHTML = html;
+        return (d.textContent || '').trim();
+    }
+
     function bindEditableFields() {
-        canvas.querySelectorAll('.se-editable').forEach((el) => {
-            el.addEventListener('blur', () => syncField(el));
-            el.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-                document.execCommand('insertText', false, text);
+        canvas.querySelectorAll('.se-editable-trigger:not(.se-editable-cta)').forEach((el) => {
+            const open = () => openTextEditor(el);
+            el.addEventListener('click', open);
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    open();
+                }
             });
         });
     }
 
-    function syncField(el) {
+    function openTextEditor(el) {
         const wrap = el.closest('.se-section-wrap');
-        if (!wrap) return;
-        const sec = getSection(wrap.dataset.blockId);
+        const sec = wrap ? getSection(wrap.dataset.blockId) : null;
         if (!sec) return;
         const field = el.dataset.field;
-        if (!field) return;
-        sec.config[field] = el.innerText.trim();
+        if (!field || !window.RichTextEditor) return;
+        const mode = el.dataset.editMode || 'rich';
+        const current = sec.config[field] || '';
+        window.RichTextEditor.open({
+            mode,
+            content: current,
+            onSave: (html) => {
+                if (mode === 'plain') {
+                    sec.config[field] = stripTags(html);
+                    el.textContent = sec.config[field] || 'Click to edit';
+                } else {
+                    sec.config[field] = html;
+                    if (html) {
+                        el.innerHTML = html;
+                    } else {
+                        el.innerHTML = '<span class="se-edit-hint">Click to edit text…</span>';
+                    }
+                }
+            },
+        });
+    }
+
+    function bindGalleryEditors() {
+        canvas.querySelectorAll('[data-gallery-editor]').forEach((editorEl) => {
+            const wrap = editorEl.closest('.se-section-wrap');
+            const sec = wrap ? getSection(wrap.dataset.blockId) : null;
+            if (!sec) return;
+            if (!Array.isArray(sec.config.photos)) {
+                sec.config.photos = [];
+            }
+
+            editorEl.querySelector('.se-gallery-add')?.addEventListener('click', () => {
+                window.MediaPicker?.openLibrary((paths) => {
+                    const list = Array.isArray(paths) ? paths : [paths];
+                    list.forEach((path) => {
+                        sec.config.photos.push({ src: path, alt: '', caption: '', title: '' });
+                    });
+                    renderGalleryGrid(editorEl, sec);
+                }, { multiple: true });
+            });
+
+            const grid = editorEl.querySelector('[data-gallery-grid]');
+            if (grid && typeof Sortable !== 'undefined') {
+                Sortable.create(grid, {
+                    animation: 150,
+                    draggable: '.se-gallery-item',
+                    onEnd: () => syncGalleryFromDom(editorEl, sec),
+                });
+            }
+
+            editorEl.addEventListener('click', (e) => {
+                const btn = e.target.closest('.se-gallery-remove');
+                if (!btn) return;
+                const item = btn.closest('.se-gallery-item');
+                const index = parseInt(item?.dataset.index || '-1', 10);
+                if (index >= 0) {
+                    sec.config.photos.splice(index, 1);
+                    renderGalleryGrid(editorEl, sec);
+                }
+            });
+        });
+    }
+
+    function renderGalleryGrid(editorEl, sec) {
+        const grid = editorEl.querySelector('[data-gallery-grid]');
+        if (!grid) return;
+        grid.innerHTML = '';
+        (sec.config.photos || []).forEach((photo, i) => {
+            const url = '/' + String(photo.src || '').replace(/^\//, '');
+            const item = document.createElement('div');
+            item.className = 'se-gallery-item';
+            item.dataset.index = String(i);
+            item.innerHTML = `<img src="${escAttr(url)}" alt=""><button type="button" class="se-gallery-remove" title="Remove">×</button>`;
+            grid.appendChild(item);
+        });
+    }
+
+    function syncGalleryFromDom(editorEl, sec) {
+        const grid = editorEl.querySelector('[data-gallery-grid]');
+        if (!grid) return;
+        const reordered = [];
+        grid.querySelectorAll('.se-gallery-item').forEach((item) => {
+            const i = parseInt(item.dataset.index || '-1', 10);
+            if (i >= 0 && sec.config.photos[i]) {
+                reordered.push(sec.config.photos[i]);
+            }
+        });
+        sec.config.photos = reordered;
+        renderGalleryGrid(editorEl, sec);
     }
 
     function bindImageZones() {
@@ -157,7 +252,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function bindCtaLinks() {
         canvas.querySelectorAll('.se-editable-cta').forEach((el) => {
-            el.addEventListener('click', (e) => e.preventDefault());
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                openTextEditor(el);
+            });
             el.addEventListener('dblclick', (e) => {
                 e.preventDefault();
                 const wrap = el.closest('.se-section-wrap');
@@ -170,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.setAttribute('href', url);
                 if (sec && linkField) sec.config[linkField] = url;
             });
-            el.title = 'Double-click to edit link URL';
+            el.title = 'Click to edit text · Double-click to edit link';
         });
     }
 
@@ -277,14 +375,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function collectFromDom() {
-        canvas.querySelectorAll('.se-editable').forEach((el) => syncField(el));
         canvas.querySelectorAll('.se-editable-cta').forEach((el) => {
             const wrap = el.closest('.se-section-wrap');
             const sec = wrap ? getSection(wrap.dataset.blockId) : null;
             if (!sec) return;
-            const textField = el.dataset.field;
             const linkField = el.dataset.linkField;
-            if (textField) sec.config[textField] = el.innerText.trim();
             if (linkField) sec.config[linkField] = el.dataset.href || sec.config[linkField] || '';
         });
     }

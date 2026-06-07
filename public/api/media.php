@@ -31,6 +31,15 @@ try {
             $id = MediaRepository::upload($_FILES['photo'], array_filter($meta, fn($v) => $v !== null));
             json_response(['success' => true, 'item' => MediaRepository::find($id)]);
         })(),
+        'upload_multiple' => (function () {
+            Csrf::requireValid();
+            $files = $_FILES['photos'] ?? null;
+            if (!$files || !is_array($files['name'] ?? null)) {
+                json_response(['success' => false, 'message' => 'No files uploaded']);
+            }
+            $items = MediaRepository::uploadMultiple($files);
+            json_response(['success' => true, 'items' => $items, 'count' => count($items)]);
+        })(),
         'sync' => (function () {
             Csrf::requireValid();
             $count = MediaRepository::syncFromDisk();

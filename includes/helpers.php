@@ -278,7 +278,7 @@ function default_block_config(string $type): array
         ],
         'menu_category' => ['category_id' => 0, 'title' => ''],
         'menu_preview' => default_section_config('menu_preview'),
-        'gallery' => ['title' => 'A Glimpse of Our Goodness'],
+        'gallery' => ['title' => 'A Glimpse of Our Goodness', 'photos' => []],
         'reviews' => default_section_config('reviews'),
         'find_us' => default_section_config('find_us'),
         'contact' => default_section_config('contact'),
@@ -366,7 +366,7 @@ function default_section_config(string $type): array
             'coming_soon_text' => 'Get ready for authentic Agua Frescas, classic Fresas con Crema, and our signature Snowflake Refreshers.',
             'link_to_full_menu' => true,
         ],
-        'gallery' => ['title' => 'A Glimpse of Our Goodness'],
+        'gallery' => ['title' => 'A Glimpse of Our Goodness', 'photos' => []],
         'reviews' => ['title' => 'What Our Customers Say'],
         'find_us' => [
             'title' => 'Where to Find Us',
@@ -609,6 +609,122 @@ function normalize_homepage_layout(array $layout): array
     return ['rows' => $rows];
 }
 
+/** Allowed tags for rich text stored in section config. */
+function sanitize_rich_text(string $html): string
+{
+    $allowed = '<p><br><strong><b><em><i><u><ul><ol><li><a>';
+    $clean = strip_tags($html, $allowed);
+    $clean = preg_replace('/\s*on\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $clean) ?? $clean;
+    $clean = preg_replace('/\s(href|src)\s*=\s*("\s*(javascript|data):[^"]*"|\'\s*(javascript|data):[^\']*\')/i', '', $clean) ?? $clean;
+    return trim($clean);
+}
+
+/** Output rich or plain text for public section templates. */
+function rich_text_out(string $value): void
+{
+    $value = (string) $value;
+    if ($value === '') {
+        return;
+    }
+    if ($value !== strip_tags($value)) {
+        echo sanitize_rich_text($value);
+        return;
+    }
+    echo nl2br(e($value));
+}
+
+/** Normalize gallery photos array in section config. */
+function normalize_gallery_photos(mixed $photos): array
+{
+    if (!is_array($photos)) {
+        return [];
+    }
+    $out = [];
+    foreach ($photos as $photo) {
+        if (!is_array($photo)) {
+            continue;
+        }
+        $src = resolve_image_path($photo['src'] ?? '');
+        if ($src === '') {
+            continue;
+        }
+        $out[] = [
+            'src' => $src,
+            'alt' => (string) ($photo['alt'] ?? ''),
+            'caption' => (string) ($photo['caption'] ?? ''),
+            'title' => (string) ($photo['title'] ?? ''),
+        ];
+    }
+    return $out;
+}
+
+/** Migrate legacy gallery (all active media) into block config once. */
+function ensure_gallery_config_photos(array $config): array
+{
+    if (!empty(normalize_gallery_photos($config['photos'] ?? []))) {
+        $config['photos'] = normalize_gallery_photos($config['photos']);
+        return $config;
+    }
+    $photos = [];
+    foreach (MediaRepository::all(true) as $img) {
+        $photos[] = [
+            'src' => $img['file_path'],
+            'alt' => $img['alt_text'] ?? '',
+            'caption' => $img['caption'] ?? '',
+            'title' => $img['title'] ?? '',
+        ];
+    }
+    $config['photos'] = $photos;
+    return $config;
+}
+
+/** Sanitize text fields and image paths in a homepage block config before save. */
+function sanitize_block_config(string $type, array $config): array
+{
+    $richFields = ['subtitle', 'paragraph1', 'paragraph2', 'coming_soon_text', 'text'];
+    foreach ($richFields as $key) {
+        if (isset($config[$key]) && is_string($config[$key])) {
+            $config[$key] = sanitize_rich_text($config[$key]);
+        }
+    }
+    foreach (['title', 'coming_soon_title', 'cta_text'] as $key) {
+        if (isset($config[$key])) {
+            $config[$key] = strip_tags((string) $config[$key]);
+        }
+    }
+    if ($type === 'gallery') {
+        $config['photos'] = normalize_gallery_photos($config['photos'] ?? []);
+    }
+    foreach (['background_image', 'logo_image', 'image'] as $key) {
+        if (!empty($config[$key])) {
+            $config[$key] = resolve_image_path($config[$key]);
+        }
+    }
+    return $config;
+}
+
+/** Migrate gallery block photos from legacy media-library display into config. */
+function migrate_homepage_gallery_layout(array $layout): array
+{
+    $changed = false;
+    foreach ($layout['rows'] ?? [] as &$row) {
+        foreach ($row['columns'] ?? [] as &$col) {
+            foreach ($col['blocks'] ?? [] as &$block) {
+                if (($block['type'] ?? '') !== 'gallery') {
+                    continue;
+                }
+                $before = json_encode($block['config']['photos'] ?? []);
+                $block['config'] = ensure_gallery_config_photos($block['config'] ?? []);
+                if (json_encode($block['config']['photos'] ?? []) !== $before) {
+                    $changed = true;
+                }
+            }
+        }
+    }
+    unset($row, $col, $block);
+    return [$layout, $changed];
+}
+
 /** Inline-editable single-line text (editor mode only). */
 function editable_text(string $field, string $value, string $tag = 'span', string $class = ''): void
 {
@@ -618,13 +734,13 @@ function editable_text(string $field, string $value, string $tag = 'span', strin
         echo '<' . $tag . $attr . '>' . e($value) . '</' . $tag . '>';
         return;
     }
-    $cls = trim('se-editable ' . $class);
-    echo '<' . $tag . ' class="' . e($cls) . '" contenteditable="true" data-field="' . e($field) . '" spellcheck="true">';
-    echo e($value);
+    $cls = trim('se-editable se-editable-trigger ' . $class);
+    echo '<' . $tag . ' class="' . e($cls) . '" data-field="' . e($field) . '" data-edit-mode="plain" role="button" tabindex="0">';
+    echo e($value ?: 'Click to edit');
     echo '</' . $tag . '>';
 }
 
-/** Inline-editable multiline text (paragraphs). */
+/** Inline-editable multiline / rich text (opens full editor on click). */
 function editable_multiline(string $field, string $value, string $tag = 'p', string $class = ''): void
 {
     $value = (string) $value;
@@ -633,12 +749,19 @@ function editable_multiline(string $field, string $value, string $tag = 'p', str
             return;
         }
         $attr = $class !== '' ? ' class="' . e($class) . '"' : '';
-        echo '<' . $tag . $attr . '>' . nl2br(e($value)) . '</' . $tag . '>';
+        echo '<' . $tag . $attr . '>';
+        rich_text_out($value);
+        echo '</' . $tag . '>';
         return;
     }
-    $cls = trim('se-editable se-editable-multiline ' . $class);
-    echo '<' . $tag . ' class="' . e($cls) . '" contenteditable="true" data-field="' . e($field) . '" spellcheck="true">';
-    echo nl2br(e($value));
+    $cls = trim('se-editable-rich se-editable-trigger ' . $class);
+    $attr = $class !== '' ? ' class="' . e($cls) . '"' : ' class="' . e($cls) . '"';
+    echo '<' . $tag . $attr . ' data-field="' . e($field) . '" data-edit-mode="rich" role="button" tabindex="0">';
+    if ($value !== '') {
+        rich_text_out($value);
+    } else {
+        echo '<span class="se-edit-hint">Click to edit text…</span>';
+    }
     echo '</' . $tag . '>';
 }
 
@@ -655,7 +778,7 @@ function editable_cta(string $textField, string $linkField, string $text, string
         return;
     }
     echo '<span class="se-cta-wrap">';
-    echo '<a href="' . e($link ?: '#') . '" class="' . e($class) . ' se-editable se-editable-cta" contenteditable="true" data-field="' . e($textField) . '" data-link-field="' . e($linkField) . '" data-href="' . e($link) . '">';
+    echo '<a href="' . e($link ?: '#') . '" class="' . e($class) . ' se-editable se-editable-trigger se-editable-cta" data-field="' . e($textField) . '" data-link-field="' . e($linkField) . '" data-edit-mode="plain" data-href="' . e($link) . '" role="button">';
     echo e($text ?: 'Button text');
     echo '</a>';
     echo '</span>';

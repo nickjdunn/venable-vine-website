@@ -110,6 +110,31 @@ class MediaRepository
         return self::create($path, $meta);
     }
 
+    /** Upload multiple files; returns formatted item arrays. */
+    public static function uploadMultiple(array $files): array
+    {
+        $items = [];
+        $count = is_array($files['name'] ?? null) ? count($files['name']) : 0;
+        for ($i = 0; $i < $count; $i++) {
+            if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                continue;
+            }
+            $file = [
+                'name' => $files['name'][$i],
+                'type' => $files['type'][$i] ?? '',
+                'tmp_name' => $files['tmp_name'][$i],
+                'error' => $files['error'][$i],
+                'size' => $files['size'][$i] ?? 0,
+            ];
+            $id = self::upload($file);
+            $item = self::find($id);
+            if ($item) {
+                $items[] = $item;
+            }
+        }
+        return $items;
+    }
+
     /** Import files from assets/images/ that are not yet in the database. */
     public static function syncFromDisk(): int
     {
