@@ -221,9 +221,9 @@ body.admin-body.se-editor-page {
     flex-wrap: wrap;
 }
 
-/* Disable live forms in editor */
-.se-canvas form,
-.se-canvas .ajax-form {
+/* Disable live section forms in editor — not the settings popover */
+.se-canvas .se-section-body form,
+.se-canvas .se-section-body .ajax-form {
     pointer-events: none;
 }
 
@@ -232,7 +232,8 @@ body.admin-body.se-editor-page {
     position: absolute;
     top: 2.5rem;
     right: 0.5rem;
-    z-index: 60;
+    z-index: 100;
+    pointer-events: auto;
     background: white;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -246,6 +247,19 @@ body.admin-body.se-editor-page {
 .se-popover input[type="color"] { width: 100%; height: 2.25rem; padding: 0.15rem; cursor: pointer; }
 .se-popover .checkbox-row { margin: 0.5rem 0; }
 .se-popover-actions { margin-top: 0.75rem; display: flex; gap: 0.5rem; }
+
+/* Readable CTA buttons on light section backgrounds in editor */
+.se-canvas .cta-button.cta-outline,
+.se-canvas .cta-outline {
+    color: var(--text-dark, #1F2937);
+    border: 2px solid var(--secondary-gold, #D97706);
+    background: white;
+}
+.se-canvas .cta-button.cta-outline:hover,
+.se-canvas .cta-outline:hover {
+    background: var(--background-cream, #FDF6E8);
+    color: var(--text-dark, #1F2937);
+}
 
 #se-status { margin-top: 0.75rem; }
 
@@ -313,7 +327,10 @@ body.admin-body.se-editor-page {
 #rte-editor {
     min-height: 220px;
     max-height: 50vh;
-    overflow-y: auto;
+    overflow-y: visible;
+}
+.rte-dialog .ql-toolbar {
+    border-radius: 6px 6px 0 0;
 }
 .rte-actions {
     display: flex;
@@ -324,6 +341,11 @@ body.admin-body.se-editor-page {
 }
 
 /* Homepage gallery editor (page builder only) */
+.se-gallery-editor {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+}
 .se-gallery-hint {
     font-size: 0.9rem;
     color: #666;
@@ -332,7 +354,8 @@ body.admin-body.se-editor-page {
 }
 .se-gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 120px));
+    justify-content: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
 }

@@ -71,12 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(() => {});
     }
 
-    // #region agent log
-    function dbgLog(location, message, data, hypothesisId) {
-        fetch('http://127.0.0.1:7709/ingest/55c5d319-00f7-40e2-8cfc-95a4896d60d5', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '684396' }, body: JSON.stringify({ sessionId: '684396', location, message, data, hypothesisId, timestamp: Date.now(), runId: 'pre-fix' }) }).catch(() => {});
-    }
-    // #endregion
-
     function init() {
         bindEditableFields();
         bindGalleryEditors();
@@ -88,23 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
         initSortable();
         preventFormSubmit();
         clientLog('init', { sections: sections.length });
-        // #region agent log
-        canvas.querySelectorAll('.cta-outline').forEach((el, i) => {
-            const cs = getComputedStyle(el);
-            dbgLog('section-editor.js:init', 'cta-outline on load', { index: i, color: cs.color, backgroundColor: cs.backgroundColor }, 'H4');
-        });
-        const galleryGrid = canvas.querySelector('.gallery-grid, .se-gallery-grid');
-        if (galleryGrid) {
-            const cs = getComputedStyle(galleryGrid);
-            const firstImg = galleryGrid.querySelector('img');
-            dbgLog('section-editor.js:init', 'gallery grid on load', {
-                justifyContent: cs.justifyContent,
-                display: cs.display,
-                imgAspectRatio: firstImg ? getComputedStyle(firstImg).aspectRatio : null,
-                imgHeight: firstImg ? getComputedStyle(firstImg).height : null,
-            }, 'H5');
-        }
-        // #endregion
     }
 
     function stripTags(html) {
@@ -476,16 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.addEventListener('click', (e) => {
-            // #region agent log
-            if (openPopover) {
-                dbgLog('section-editor.js:docClick', 'document click while popover open', {
-                    targetTag: e.target?.tagName,
-                    inPopover: !!e.target.closest('.se-popover'),
-                    inSettingsBtn: !!e.target.closest('.se-settings-btn'),
-                    pointerEvents: openPopover.querySelector('form') ? getComputedStyle(openPopover.querySelector('form')).pointerEvents : null,
-                }, 'H2');
-            }
-            // #endregion
             if (!e.target.closest('.se-popover') && !e.target.closest('.se-settings-btn')) {
                 closePopover();
             }
@@ -510,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pop.className = 'se-popover';
         pop.innerHTML = '<h4>Section Settings</h4>';
         const form = document.createElement('form');
+        form.className = 'se-popover-form';
         defs.forEach((def) => {
             const val = sec.config[def.key];
             if (def.type === 'checkbox') {
@@ -527,26 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
         pop.appendChild(form);
         wrap.appendChild(pop);
         openPopover = pop;
-
-        // #region agent log
-        const popForm = pop.querySelector('form');
-        const popStyles = popForm ? getComputedStyle(popForm) : null;
-        dbgLog('section-editor.js:toggleSettingsPopover', 'popover opened', {
-            pointerEvents: popStyles?.pointerEvents,
-            zIndex: getComputedStyle(pop).zIndex,
-            inCanvas: !!pop.closest('.se-canvas'),
-            formMatchesCanvasRule: popForm?.matches('.se-canvas form') ?? false,
-        }, 'H2');
-        canvas.querySelectorAll('.cta-outline').forEach((el, i) => {
-            const cs = getComputedStyle(el);
-            dbgLog('section-editor.js:init', 'cta-outline computed styles', {
-                index: i,
-                color: cs.color,
-                backgroundColor: cs.backgroundColor,
-                className: el.className,
-            }, 'H4');
-        });
-        // #endregion
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();

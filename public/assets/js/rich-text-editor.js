@@ -3,12 +3,6 @@
     let quill = null;
     let saveCallback = null;
 
-    // #region agent log
-    function dbgLog(location, message, data, hypothesisId) {
-        fetch('http://127.0.0.1:7709/ingest/55c5d319-00f7-40e2-8cfc-95a4896d60d5', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '684396' }, body: JSON.stringify({ sessionId: '684396', location, message, data, hypothesisId, timestamp: Date.now(), runId: 'pre-fix' }) }).catch(() => {});
-    }
-    // #endregion
-
     function ensureModal() {
         if (modalEl) return modalEl;
         modalEl = document.createElement('div');
@@ -43,17 +37,25 @@
         return modalEl;
     }
 
+    function destroyQuill() {
+        if (modalEl) {
+            modalEl.querySelectorAll('.ql-toolbar').forEach((el) => el.remove());
+        }
+        const container = document.getElementById('rte-editor');
+        if (container) {
+            container.innerHTML = '';
+            container.className = '';
+        }
+        quill = null;
+    }
+
     function initQuill(mode) {
         if (typeof Quill === 'undefined') {
             alert('Text editor failed to load. Please refresh the page.');
             return null;
         }
+        destroyQuill();
         const container = document.getElementById('rte-editor');
-        // #region agent log
-        const toolbarsBefore = document.querySelectorAll('#rte-modal .ql-toolbar, .ql-toolbar').length;
-        dbgLog('rich-text-editor.js:initQuill', 'before initQuill', { toolbarsBefore, hasExistingQuill: !!quill, mode }, 'H1');
-        // #endregion
-        container.innerHTML = '';
         const toolbar = mode === 'plain'
             ? [['bold', 'italic', 'underline'], ['link'], ['clean']]
             : [
@@ -67,10 +69,6 @@
             theme: 'snow',
             modules: { toolbar },
         });
-        // #region agent log
-        const toolbarsAfter = document.querySelectorAll('#rte-modal .ql-toolbar, .ql-toolbar').length;
-        dbgLog('rich-text-editor.js:initQuill', 'after initQuill', { toolbarsAfter, mode }, 'H1');
-        // #endregion
         return quill;
     }
 
