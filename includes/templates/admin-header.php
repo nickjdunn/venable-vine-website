@@ -10,6 +10,7 @@ $user = Auth::user();
     <title><?= e($adminTitle) ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= asset('css/admin.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/admin-tutorial.css') ?>">
     <?php if (!empty($extraAdminCss)): foreach ((array)$extraAdminCss as $css): ?>
         <link rel="stylesheet" href="<?= e($css) ?>">
     <?php endforeach; endif; ?>
@@ -19,6 +20,7 @@ $user = Auth::user();
     <a href="/admin/dashboard.php" class="admin-brand">V&V Admin</a>
     <button class="admin-nav-toggle" aria-label="Menu">☰</button>
     <div class="admin-user">
+        <button type="button" id="admin-tutorial-btn" class="btn btn-sm btn-tutorial">Tutorial</button>
         <span><?= e($user['name'] ?? '') ?></span>
         <a href="/admin/logout.php" class="btn btn-sm btn-muted">Logout</a>
     </div>

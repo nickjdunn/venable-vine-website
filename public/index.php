@@ -9,5 +9,5 @@ if (!$page || !$page['is_published']) {
 
 $pageTitle = Settings::get('site_name', 'Venable & Vine');
 require ROOT . '/includes/templates/public-header.php';
-render_page_sections((int) $page['id']);
+render_page_layout((int) $page['id']);
 require ROOT . '/includes/templates/public-footer.php';

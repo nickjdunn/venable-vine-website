@@ -3,7 +3,13 @@ $siteName = Settings::get('site_name', 'Venable & Vine');
 $tagline = Settings::get('site_tagline', 'Freshly Squeezed. Family Made.');
 $metaDesc = Settings::get('meta_description', '');
 $logo = upload_url(Settings::get('logo_path'));
+if (!$logo) {
+    $logo = asset('images/VenableandVineLogo.webp');
+}
 $favicon = upload_url(Settings::get('favicon_path'));
+if (!$favicon) {
+    $favicon = asset('images/JamIcon.webp');
+}
 $pageTitle = ($pageTitle ?? $siteName) . ' | ' . $tagline;
 $recaptchaKey = Settings::get('recaptcha_site_key');
 ?>

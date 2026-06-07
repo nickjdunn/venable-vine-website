@@ -1,0 +1,21 @@
+/* Admin guided tutorial */
+.tutorial-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9000;
+    display: none; align-items: center; justify-content: center; padding: 1rem;
+}
+.tutorial-overlay.open { display: flex; }
+.tutorial-card {
+    background: white; border-radius: 12px; max-width: 480px; width: 100%;
+    padding: 1.75rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative;
+}
+.tutorial-card h2 { margin: 0 0 0.75rem; font-family: 'Playfair Display', serif; }
+.tutorial-card p { margin: 0 0 1.25rem; line-height: 1.6; color: #444; }
+.tutorial-progress { font-size: 0.85rem; color: #888; margin-bottom: 0.5rem; }
+.tutorial-actions { display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.tutorial-highlight {
+    position: relative; z-index: 8999;
+    box-shadow: 0 0 0 4px #FACC15, 0 0 0 9999px rgba(0,0,0,0.45) !important;
+    border-radius: 4px;
+}
+.btn-tutorial { background: #166534; color: white; border: none; }
+.btn-tutorial:hover { background: #14532d; }

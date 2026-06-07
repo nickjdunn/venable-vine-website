@@ -2,7 +2,6 @@
 require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 
 Auth::requireLogin();
-Csrf::requireValid();
 
 header('Content-Type: application/json');
 
@@ -13,56 +12,106 @@ if (!$page) {
 }
 $pageId = (int) $page['id'];
 
-try {
-    match ($action) {
-        'add_section' => (function () use ($pageId) {
-            $type = $_POST['section_type'] ?? '';
-            if (!isset(section_types()[$type])) {
-                json_response(['success' => false, 'message' => 'Invalid section type']);
+function seed_gallery_from_assets(): void
+{
+    if (!Settings::get('logo_path')) {
+        Settings::set('logo_path', 'assets/images/VenableandVineLogo.webp');
+    }
+    if (!Settings::get('favicon_path')) {
+        Settings::set('favicon_path', 'assets/images/JamIcon.webp');
+    }
+    if (GalleryRepository::all()) {
+        return;
+    }
+    $skip = ['Logo', 'JamIcon', 'BerriesInhand'];
+    foreach (list_asset_images() as $path) {
+        $base = basename($path);
+        foreach ($skip as $s) {
+            if (str_contains($base, $s)) {
+                continue 2;
             }
-            $id = PageRepository::addSection($pageId, $type);
-            $section = PageRepository::getSection($id);
-            json_response(['success' => true, 'section' => format_section($section)]);
-        })(),
-        'save_sections' => (function () use ($pageId) {
+        }
+        GalleryRepository::create($path, null);
+    }
+}
+
+try {
+    if ($action === 'get_builder_data') {
+        seed_gallery_from_assets();
+        $categories = MenuRepository::categories(false);
+        $gallery = array_map(fn($g) => [
+            'id' => (int) $g['id'],
+            'file_path' => $g['file_path'],
+            'url' => upload_url($g['file_path']),
+            'caption' => $g['caption'],
+            'is_active' => (bool) $g['is_active'],
+        ], GalleryRepository::all());
+        json_response([
+            'success' => true,
+            'layout_desktop' => PageRepository::getLayout($pageId, 'desktop'),
+            'layout_mobile' => PageRepository::getLayout($pageId, 'mobile'),
+            'block_types' => block_types(),
+            'categories' => $categories,
+            'gallery' => $gallery,
+            'asset_images' => list_asset_images(),
+        ]);
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        json_response(['success' => false, 'message' => 'Method not allowed'], 405);
+    }
+
+    match ($action) {
+        'save_layout' => (function () use ($pageId) {
             $payload = json_decode(file_get_contents('php://input'), true);
             $token = $payload['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
             if (!Csrf::validate($token)) {
                 json_response(['success' => false, 'message' => 'Invalid CSRF token'], 403);
             }
-            if (!is_array($payload) || !isset($payload['sections'])) {
-                json_response(['success' => false, 'message' => 'Invalid payload']);
+            $viewport = ($payload['viewport'] ?? 'desktop') === 'mobile' ? 'mobile' : 'desktop';
+            if (!isset($payload['layout']) || !is_array($payload['layout'])) {
+                json_response(['success' => false, 'message' => 'Invalid layout']);
             }
-            PageRepository::saveSections($pageId, $payload['sections']);
-            json_response(['success' => true, 'message' => 'Page saved']);
+            PageRepository::saveLayout($pageId, $viewport, $payload['layout']);
+            json_response(['success' => true, 'message' => ucfirst($viewport) . ' layout saved']);
         })(),
-        'update_config' => (function () {
-            $id = (int) ($_POST['section_id'] ?? 0);
-            $config = json_decode($_POST['config'] ?? '{}', true);
-            if (!$id || !is_array($config)) {
-                json_response(['success' => false, 'message' => 'Invalid data']);
+        'gallery_upload' => (function () {
+            Csrf::requireValid();
+            if (empty($_FILES['photo'])) {
+                json_response(['success' => false, 'message' => 'No file uploaded']);
             }
-            PageRepository::updateSectionConfig($id, $config);
-            json_response(['success' => true, 'message' => 'Section updated']);
+            $path = Upload::image($_FILES['photo'], 'gallery');
+            $id = GalleryRepository::create($path, $_POST['caption'] ?? null);
+            $row = GalleryRepository::find($id);
+            json_response(['success' => true, 'image' => [
+                'id' => $id,
+                'file_path' => $path,
+                'url' => upload_url($path),
+                'caption' => $row['caption'] ?? '',
+                'is_active' => true,
+            ]]);
         })(),
-        'get_sections' => (function () use ($pageId) {
-            $sections = PageRepository::getSections($pageId);
-            json_response(['success' => true, 'sections' => array_map('format_section', $sections)]);
+        'gallery_delete' => (function () {
+            Csrf::requireValid();
+            $id = (int) ($_POST['id'] ?? 0);
+            GalleryRepository::delete($id);
+            json_response(['success' => true]);
+        })(),
+        'gallery_toggle' => (function () {
+            Csrf::requireValid();
+            $id = (int) ($_POST['id'] ?? 0);
+            $img = GalleryRepository::find($id);
+            if ($img) {
+                GalleryRepository::update($id, [
+                    'caption' => $img['caption'],
+                    'sort_order' => $img['sort_order'],
+                    'is_active' => !$img['is_active'],
+                ]);
+            }
+            json_response(['success' => true]);
         })(),
         default => json_response(['success' => false, 'message' => 'Unknown action'], 400),
     };
 } catch (Throwable $e) {
     json_response(['success' => false, 'message' => $e->getMessage()], 500);
-}
-
-function format_section(array $section): array
-{
-    return [
-        'id' => (int) $section['id'],
-        'section_type' => $section['section_type'],
-        'sort_order' => (int) $section['sort_order'],
-        'is_active' => (bool) $section['is_active'],
-        'config' => parse_json_config($section['config'] ?? null),
-        'label' => section_types()[$section['section_type']] ?? $section['section_type'],
-    ];
 }

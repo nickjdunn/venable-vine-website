@@ -5,50 +5,47 @@ Auth::requireLogin();
 $adminTitle = 'Page Builder';
 $page = PageRepository::getBySlug('home');
 if (!$page) {
-    flash('error', 'Home page not found. Import sql/schema.sql first.');
+    flash('error', 'Home page not found.');
     redirect('/admin/dashboard.php');
 }
 
-$sections = PageRepository::getSections((int) $page['id']);
-$formatted = array_map(function ($s) {
-    return [
-        'id' => (int) $s['id'],
-        'section_type' => $s['section_type'],
-        'sort_order' => (int) $s['sort_order'],
-        'is_active' => (bool) $s['is_active'],
-        'config' => parse_json_config($s['config'] ?? null),
-        'label' => section_types()[$s['section_type']] ?? $s['section_type'],
-    ];
-}, $sections);
-
+$extraAdminCss = [asset('css/page-builder.css')];
 $extraAdminJs = [
     'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
     asset('js/page-builder.js'),
 ];
 require ROOT . '/includes/templates/admin-header.php';
 ?>
-<h1>Page Builder</h1>
-<p>Drag sections to reorder. Click a section to edit its content. Toggle active to hide without deleting.</p>
-<div class="builder-layout">
-    <aside class="builder-library">
-        <h3>Add Section</h3>
-        <ul class="builder-section-types">
-            <?php foreach (section_types() as $type => $label): ?>
-                <li><button type="button" class="btn btn-sm btn-outline" data-add-section="<?= e($type) ?>">+ <?= e($label) ?></button></li>
-            <?php endforeach; ?>
-        </ul>
-    </aside>
-    <div class="builder-canvas-wrap">
-        <div class="card-header">
-            <strong>Homepage Sections</strong>
-            <button type="button" id="save-page-btn" class="btn btn-success">Save Page</button>
-        </div>
-        <div id="builder-canvas" class="builder-canvas"></div>
-        <div id="builder-status" style="margin-top:0.75rem;"></div>
+<div class="pb-header">
+    <div>
+        <h1>Page Builder</h1>
+        <p class="pb-subtitle">Build your homepage with drag-and-drop blocks. Use <strong>Desktop</strong> and <strong>Mobile</strong> tabs for different layouts.</p>
     </div>
-    <aside class="builder-editor" id="builder-editor">
-        <p class="builder-preview-note">Select a section to edit</p>
+    <button type="button" id="save-layout-btn" class="btn btn-success">Save Page</button>
+</div>
+
+<div class="pb-viewport-tabs">
+    <button type="button" class="pb-viewport-tab active" data-viewport="desktop">Desktop</button>
+    <button type="button" class="pb-viewport-tab" data-viewport="mobile">Mobile</button>
+</div>
+
+<div class="pb-layout">
+    <aside class="pb-palette">
+        <h3>Basic Blocks</h3>
+        <div id="palette-basic" class="pb-palette-list"></div>
+        <h3>Modules</h3>
+        <div id="palette-modules" class="pb-palette-list"></div>
+        <hr>
+        <button type="button" id="add-row-btn" class="btn btn-sm btn-outline" style="width:100%">+ Add Row (3 columns)</button>
+    </aside>
+
+    <main class="pb-canvas-wrap">
+        <div id="pb-canvas" class="pb-canvas"></div>
+        <div id="pb-status"></div>
+    </main>
+
+    <aside class="pb-inspector" id="pb-inspector">
+        <p class="pb-hint">Click a block to edit it here.</p>
     </aside>
 </div>
-<script>window.BUILDER_SECTIONS = <?= json_encode($formatted, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
 <?php require ROOT . '/includes/templates/admin-footer.php'; ?>

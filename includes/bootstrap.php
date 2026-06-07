@@ -29,3 +29,4 @@ foreach ($repos as $repo) {
 }
 
 require_once ROOT . '/includes/sections/render.php';
+require_once ROOT . '/includes/layout/render.php';

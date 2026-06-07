@@ -204,6 +204,24 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 .footer { background: var(--text-dark); color: var(--background-light); text-align: center; padding: 3rem 1rem; }
 .footer .logo-img-display { max-width: 180px; margin: 0 auto 1.5rem; display: block; }
 
+/* Page layout (desktop / mobile builder) */
+.layout-view.layout-mobile { display: none; }
+.layout-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; padding: 2rem 1rem; max-width: 1100px; margin: 0 auto; }
+.layout-column { min-width: 0; }
+.block-title.align-center, .block-button.align-center { text-align: center; }
+.block-title.align-right, .block-button.align-right { text-align: right; }
+.block-text.align-center { text-align: center; }
+.block-text.align-right { text-align: right; }
+.block-image img { width: 100%; border-radius: 8px; }
+.block-image figcaption { text-align: center; font-size: 0.9rem; color: #666; margin-top: 0.5rem; }
+.block-menu-category { padding: 1rem 0; }
+
+@media (max-width: 768px) {
+    .layout-view.layout-desktop { display: none; }
+    .layout-view.layout-mobile { display: block; }
+    .layout-row { grid-template-columns: 1fr; }
+}
+
 /* Lightbox */
 .lightbox {
     display: none; position: fixed; inset: 0; z-index: 1000;

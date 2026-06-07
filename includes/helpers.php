@@ -90,14 +90,145 @@ function section_types(): array
     ];
 }
 
+function default_brand_images(): array
+{
+    return [
+        'logo' => 'assets/images/VenableandVineLogo.webp',
+        'hero_bg' => 'assets/images/BerriesInhand.webp',
+        'story' => 'assets/images/FoodTruckPicture.webp',
+        'favicon' => 'assets/images/JamIcon.webp',
+        'lemonade' => 'assets/images/LemonadeWithHoney.webp',
+        'honey' => 'assets/images/HoneyandJamandBerries.webp',
+        'food' => 'assets/images/ImagesOfFoodOffered.webp',
+    ];
+}
+
+function list_asset_images(): array
+{
+    $dir = PUBLIC_ROOT . '/assets/images';
+    if (!is_dir($dir)) {
+        return [];
+    }
+    $files = [];
+    foreach (scandir($dir) as $file) {
+        if ($file === '.' || $file === '..' || $file === '.gitkeep') {
+            continue;
+        }
+        if (preg_match('/\.(webp|jpe?g|png|gif)$/i', $file)) {
+            $files[] = 'assets/images/' . $file;
+        }
+    }
+    sort($files);
+    return $files;
+}
+
+function block_types(): array
+{
+    return [
+        'basic' => [
+            'title' => 'Title',
+            'text' => 'Text',
+            'image' => 'Image',
+            'button' => 'Button',
+            'spacer' => 'Spacer',
+        ],
+        'modules' => [
+            'hero' => 'Hero Banner',
+            'menu_category' => 'Menu Category',
+            'menu_preview' => 'Full Menu Preview',
+            'gallery' => 'Photo Gallery',
+            'reviews' => 'Reviews',
+            'find_us' => 'Find Us / Events',
+            'contact' => 'Contact Forms',
+            'newsletter' => 'Newsletter',
+            'social' => 'Social Links',
+            'story' => 'Story Block',
+        ],
+    ];
+}
+
+function default_block_config(string $type): array
+{
+    $img = default_brand_images();
+    return match ($type) {
+        'title' => ['text' => 'Section Title', 'level' => 'h2', 'align' => 'center'],
+        'text' => ['content' => 'Write your text here. Tell customers about your food truck!', 'align' => 'left'],
+        'image' => ['src' => $img['food'], 'alt' => 'Venable & Vine', 'caption' => ''],
+        'button' => ['text' => 'Find The Truck', 'link' => '/find-us.php', 'align' => 'center'],
+        'spacer' => ['height' => 40],
+        'hero' => [
+            'title' => 'Freshly Squeezed. Family Made.',
+            'subtitle' => 'Handcrafted lemonades, sweet treats, and honey straight from our hives.',
+            'background_image' => $img['hero_bg'],
+            'logo_image' => $img['logo'],
+            'cta_text' => 'Find The Truck Today',
+            'cta_link' => '/find-us.php',
+        ],
+        'story' => [
+            'title' => 'From Our Family to Yours',
+            'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients.',
+            'paragraph2' => 'Every drink is muddled right in front of you.',
+            'image' => $img['story'],
+        ],
+        'menu_category' => ['category_id' => 0, 'title' => ''],
+        'menu_preview' => default_section_config('menu_preview'),
+        'gallery' => ['title' => 'A Glimpse of Our Goodness'],
+        'reviews' => default_section_config('reviews'),
+        'find_us' => default_section_config('find_us'),
+        'contact' => default_section_config('contact'),
+        'newsletter' => default_section_config('newsletter'),
+        'social' => default_section_config('social'),
+        default => [],
+    };
+}
+
+function default_layout_from_sections(array $sections): array
+{
+    $rows = [];
+    foreach ($sections as $sec) {
+        $type = $sec['section_type'];
+        if ($type === 'custom_html') {
+            continue;
+        }
+        $config = parse_json_config($sec['config'] ?? null);
+        if ($type === 'hero' && empty($config['logo_image'])) {
+            $config['logo_image'] = default_brand_images()['logo'];
+            $config['background_image'] = $config['background_image'] ?: default_brand_images()['hero_bg'];
+        }
+        if ($type === 'story' && empty($config['image'])) {
+            $config['image'] = default_brand_images()['story'];
+        }
+        $rows[] = [
+            'id' => 'row_' . ($sec['id'] ?? uniqid()),
+            'columns' => [
+                ['id' => 'col_1', 'blocks' => [[
+                    'id' => 'block_' . ($sec['id'] ?? uniqid()),
+                    'type' => $type,
+                    'config' => $config,
+                    'active' => (bool) ($sec['is_active'] ?? true),
+                ]]],
+                ['id' => 'col_2', 'blocks' => []],
+                ['id' => 'col_3', 'blocks' => []],
+            ],
+        ];
+    }
+    return ['rows' => $rows];
+}
+
+function empty_layout(): array
+{
+    return ['rows' => []];
+}
+
 function default_section_config(string $type): array
 {
+    $img = default_brand_images();
     return match ($type) {
         'hero' => [
             'title' => 'Freshly Squeezed. Family Made.',
             'subtitle' => 'Handcrafted lemonades, sweet treats, and honey straight from our hives. Made with love, for you.',
-            'background_image' => '',
-            'logo_image' => '',
+            'background_image' => $img['hero_bg'],
+            'logo_image' => $img['logo'],
             'cta_text' => 'Find The Truck Today',
             'cta_link' => '/find-us.php',
         ],
@@ -105,7 +236,7 @@ function default_section_config(string $type): array
             'title' => 'From Our Family to Yours',
             'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients.',
             'paragraph2' => 'Every drink is muddled right in front of you. We\'re proud to be family-owned and operated.',
-            'image' => '',
+            'image' => $img['story'],
         ],
         'menu_preview' => [
             'title' => 'Taste the Sunshine',
