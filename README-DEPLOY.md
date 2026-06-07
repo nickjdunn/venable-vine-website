@@ -8,12 +8,23 @@
 
 ## Deployment Steps
 
-### 1. Upload files
+### 1. Upload files (Git deploy)
 
-Upload the project to your hosting account. Point your domain document root to the `public/` folder:
+**GitHub repo:** https://github.com/nickjdunn/venable-vine-website
 
-**Option A (recommended):** Set document root to `public/`  
-**Option B:** Move contents of `public/` into `public_html/` and place `includes/`, `config/`, `sql/` one level above (outside web root if possible)
+In cPanel → **Git Version Control** → clone the repo, then click **Deploy HEAD Commit**.
+
+The repo includes `.cpanel.yml`, which deploys files to `~/venablevine/` on your server (preserves `config/database.php` and uploaded photos across deploys).
+
+**Set document root** for your domain to:
+```
+/home/YOUR_CPANEL_USERNAME/venablevine/public
+```
+(Domains → your domain → Document Root, or use cPanel's domain settings.)
+
+If deploy fails with *"uncommitted changes"*, open the repo in cPanel Git and run **Reset** on the branch, then deploy again.
+
+**Option B (manual):** Point document root to the `public/` folder inside the clone, or upload via FTP.
 
 ### 2. Run the web installer (recommended)
 
