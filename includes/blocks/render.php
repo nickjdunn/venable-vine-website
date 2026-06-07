@@ -42,7 +42,7 @@ function render_block_text(array $c): void
 
 function render_block_image(array $c): void
 {
-    $src = upload_url($c['src'] ?? '');
+    $src = upload_url(resolve_image_path($c['src'] ?? ''));
     if (!$src) {
         return;
     }

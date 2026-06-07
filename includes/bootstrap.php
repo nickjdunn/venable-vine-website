@@ -18,7 +18,7 @@ $repos = [
     'PageRepository',
     'MenuRepository',
     'EventRepository',
-    'GalleryRepository',
+    'MediaRepository',
     'ReviewRepository',
     'ContactRepository',
     'NewsletterRepository',

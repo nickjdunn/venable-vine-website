@@ -17,30 +17,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Settings::set($key, trim($_POST[$key]));
         }
     }
-    try {
-        if (!empty($_FILES['logo']['name'])) {
-            $old = Settings::get('logo_path');
-            Upload::delete($old);
-            Settings::set('logo_path', Upload::image($_FILES['logo'], 'site'));
-        }
-        if (!empty($_FILES['favicon']['name'])) {
-            $old = Settings::get('favicon_path');
-            Upload::delete($old);
-            Settings::set('favicon_path', Upload::image($_FILES['favicon'], 'site'));
-        }
-    } catch (Throwable $e) {
-        flash('error', $e->getMessage());
-        redirect('/admin/settings.php');
+    if (isset($_POST['logo_path'])) {
+        Settings::set('logo_path', resolve_image_path(trim($_POST['logo_path'])));
+    }
+    if (isset($_POST['favicon_path'])) {
+        Settings::set('favicon_path', resolve_image_path(trim($_POST['favicon_path'])));
     }
     flash('success', 'Settings saved.');
     redirect('/admin/settings.php');
 }
 
 $s = Settings::all();
+$s['logo_path'] = resolve_image_path($s['logo_path'] ?? default_brand_images()['logo']);
+$s['favicon_path'] = resolve_image_path($s['favicon_path'] ?? default_brand_images()['favicon']);
 require ROOT . '/includes/templates/admin-header.php';
 ?>
 <h1>Site Settings</h1>
-<form method="post" enctype="multipart/form-data">
+<form method="post">
     <?= Csrf::field() ?>
     <div class="card">
         <h3>General</h3>
@@ -55,12 +48,8 @@ require ROOT . '/includes/templates/admin-header.php';
     </div>
     <div class="card">
         <h3>Branding</h3>
-        <label>Logo</label>
-        <?php if (!empty($s['logo_path'])): ?><img src="<?= e(upload_url($s['logo_path'])) ?>" class="item-thumb" alt=""><br><?php endif; ?>
-        <input type="file" name="logo" accept="image/*">
-        <label>Favicon</label>
-        <?php if (!empty($s['favicon_path'])): ?><img src="<?= e(upload_url($s['favicon_path'])) ?>" style="width:32px;height:32px;" alt=""><br><?php endif; ?>
-        <input type="file" name="favicon" accept="image/*">
+        <?php media_picker_field('logo_path', $s['logo_path'] ?? '', 'Logo'); ?>
+        <?php media_picker_field('favicon_path', $s['favicon_path'] ?? '', 'Favicon'); ?>
     </div>
     <div class="card">
         <h3>Social & Contact</h3>

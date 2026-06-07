@@ -1,5 +1,5 @@
 <?php
-$image = upload_url($config['image'] ?? '');
+$image = upload_url(resolve_image_path($config['image'] ?? default_brand_images()['story']));
 ?>
 <section id="story" class="section-story">
     <div class="container">

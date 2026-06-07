@@ -89,6 +89,9 @@ CREATE TABLE gallery_images (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     file_path VARCHAR(500) NOT NULL,
     caption VARCHAR(255) NULL,
+    display_name VARCHAR(255) NULL,
+    alt_text VARCHAR(255) NULL,
+    title VARCHAR(255) NULL,
     sort_order INT NOT NULL DEFAULT 0,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -157,9 +160,9 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO pages (slug, title, is_published) VALUES ('home', 'Home', 1);
 
 INSERT INTO page_sections (page_id, section_type, sort_order, is_active, config) VALUES
-(1, 'hero', 0, 1, '{"title":"Freshly Squeezed. Family Made.","subtitle":"Handcrafted lemonades, sweet treats, and honey straight from our hives. Made with love, for you.","background_image":"assets/images/BerriesInhand.webp","logo_image":"assets/images/VenableandVineLogo.webp","cta_text":"Find The Truck Today","cta_link":"/find-us.php"}'),
+(1, 'hero', 0, 1, '{"title":"Freshly Squeezed. Family Made.","subtitle":"Handcrafted lemonades, sweet treats, and honey straight from our hives. Made with love, for you.","background_image":"assets/images/BerriesInhand.png","logo_image":"assets/images/VenableandVineLogo.png","cta_text":"Find The Truck Today","cta_link":"/find-us.php"}'),
 (1, 'menu_preview', 1, 1, '{"title":"Taste the Sunshine","show_coming_soon":true,"coming_soon_title":"Coming Soon!","coming_soon_text":"Get ready for authentic Agua Frescas, classic Fresas con Crema, and our signature Snowflake Refreshers.","link_to_full_menu":true}'),
-(1, 'story', 2, 1, '{"title":"From Our Family to Yours","paragraph1":"Venable & Vine started around our kitchen table, with a love for simple, real ingredients. Our kids loved the fresh-squeezed lemonade we''d make on hot summer days, and we loved the honey from the hives buzzing in our backyard. We thought, why not share this?","paragraph2":"Every drink is muddled right in front of you. The ''Vine'' in our name represents the fresh fruit we use, and ''Venable'' is our family name—a promise of quality and care in everything we serve. We''re proud to be family-owned and operated, and we can''t wait to share a little piece of our home with you.","image":"assets/images/FoodTruckPicture.webp"}'),
+(1, 'story', 2, 1, '{"title":"From Our Family to Yours","paragraph1":"Venable & Vine started around our kitchen table, with a love for simple, real ingredients. Our kids loved the fresh-squeezed lemonade we''d make on hot summer days, and we loved the honey from the hives buzzing in our backyard. We thought, why not share this?","paragraph2":"Every drink is muddled right in front of you. The ''Vine'' in our name represents the fresh fruit we use, and ''Venable'' is our family name—a promise of quality and care in everything we serve. We''re proud to be family-owned and operated, and we can''t wait to share a little piece of our home with you.","image":"assets/images/FoodTruckPicture.jpg"}'),
 (1, 'gallery', 3, 1, '{"title":"A Glimpse of Our Goodness"}'),
 (1, 'reviews', 4, 1, '{"title":"What Our Customers Say"}'),
 (1, 'find_us', 5, 1, '{"title":"Where to Find Us","text":"For all other news, follow us on Facebook!","show_facebook_button":true,"max_events":5}'),
@@ -179,18 +182,18 @@ INSERT INTO menu_items (category_id, name, description, price, dietary_tags, is_
 (2, 'Frozen Candied Grapes', 'Sweet frozen grapes with a candy crunch.', 4.00, '["vegetarian","vegan","gluten_free"]', 1, 1, 0),
 (3, 'Homemade Wildflower Honey', 'From our backyard hives.', 8.00, '["vegetarian","gluten_free"]', 0, 1, 0);
 
-INSERT INTO gallery_images (file_path, caption, sort_order, is_active) VALUES
-('assets/images/LemonadeWithHoney.webp', 'Fresh lemonade', 0, 1),
-('assets/images/HoneyandJamandBerries.webp', 'Honey and jam', 1, 1),
-('assets/images/ImagesOfFoodOffered.webp', 'Our offerings', 2, 1);
+INSERT INTO gallery_images (file_path, caption, display_name, alt_text, sort_order, is_active) VALUES
+('assets/images/LemonadeWithHoney.jpg', 'Fresh lemonade', 'Lemonade With Honey', 'Fresh lemonade', 0, 1),
+('assets/images/HoneyandJamandBerries.png', 'Honey and jam', 'Honey Jam and Berries', 'Honey and jam', 1, 1),
+('assets/images/ImagesOfFoodOffered.jpg', 'Our offerings', 'Food Offered', 'Our offerings', 2, 1);
 
 -- Site settings
 INSERT INTO site_settings (setting_key, setting_value) VALUES
 ('site_name', 'Venable & Vine'),
 ('site_tagline', 'Freshly Squeezed. Family Made.'),
 ('meta_description', 'Venable & Vine is a family-owned food truck serving fresh muddled lemonades, frozen candied fruits, and homemade jams & honey.'),
-('logo_path', 'assets/images/VenableandVineLogo.webp'),
-('favicon_path', 'assets/images/JamIcon.webp'),
+('logo_path', 'assets/images/VenableandVineLogo.png'),
+('favicon_path', 'assets/images/JamIcon.png'),
 ('footer_text', '© 2024 Venable & Vine | Family Owned & Operated'),
 ('facebook_url', 'https://www.facebook.com/profile.php?id=61578166736407'),
 ('instagram_url', ''),

@@ -1,4 +1,4 @@
-<?php $images = GalleryRepository::all(true); ?>
+<?php $images = MediaRepository::all(true); ?>
 <section id="gallery" class="container section-gallery">
     <h2><?= e($config['title'] ?? 'Gallery') ?></h2>
     <?php if (empty($images)): ?>
@@ -6,8 +6,9 @@
     <?php else: ?>
         <div class="gallery-grid" data-lightbox-gallery>
             <?php foreach ($images as $img): ?>
-                <img src="<?= e(upload_url($img['file_path'])) ?>"
-                     alt="<?= e($img['caption'] ?: 'Gallery photo') ?>"
+                <img src="<?= e($img['url']) ?>"
+                     alt="<?= e($img['alt_text'] ?: $img['caption'] ?: 'Gallery photo') ?>"
+                     title="<?= e($img['title']) ?>"
                      class="gallery-image"
                      loading="lazy">
             <?php endforeach; ?>

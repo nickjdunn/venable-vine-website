@@ -1,6 +1,6 @@
 <?php
-$bg = upload_url($config['background_image'] ?? '');
-$logo = upload_url($config['logo_image'] ?? Settings::get('logo_path'));
+$bg = upload_url(resolve_image_path($config['background_image'] ?? default_brand_images()['hero_bg']));
+$logo = upload_url(resolve_image_path($config['logo_image'] ?? Settings::get('logo_path') ?? default_brand_images()['logo']));
 $heroStyle = $bg ? "background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('" . e($bg) . "');" : '';
 ?>
 <section class="hero" id="hero"<?= $heroStyle ? ' style="' . $heroStyle . '"' : '' ?>>

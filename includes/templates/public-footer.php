@@ -1,6 +1,6 @@
 </main>
 <footer class="footer">
-    <?php $logo = upload_url(Settings::get('logo_path')); ?>
+    <?php $logo = upload_url(resolve_image_path(Settings::get('logo_path') ?: default_brand_images()['logo'])); ?>
     <?php if ($logo): ?>
         <img src="<?= e($logo) ?>" alt="<?= e(Settings::get('site_name', 'Venable & Vine')) ?>" class="logo-img-display">
     <?php endif; ?>

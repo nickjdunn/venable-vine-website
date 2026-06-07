@@ -10,6 +10,7 @@ $user = Auth::user();
     <title><?= e($adminTitle) ?></title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= asset('css/admin.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/media-picker.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/admin-tutorial.css') ?>">
     <?php if (!empty($extraAdminCss)): foreach ((array)$extraAdminCss as $css): ?>
         <link rel="stylesheet" href="<?= e($css) ?>">
@@ -32,7 +33,7 @@ $user = Auth::user();
         '/admin/page-builder.php' => 'Page Builder',
         '/admin/menu.php' => 'Menu',
         '/admin/events.php' => 'Events',
-        '/admin/gallery.php' => 'Gallery',
+        '/admin/gallery.php' => 'Media Library',
         '/admin/reviews.php' => 'Reviews',
         '/admin/contacts.php' => 'Contacts',
         '/admin/newsletter.php' => 'Newsletter',

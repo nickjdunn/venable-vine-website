@@ -93,14 +93,56 @@ function section_types(): array
 function default_brand_images(): array
 {
     return [
-        'logo' => 'assets/images/VenableandVineLogo.webp',
-        'hero_bg' => 'assets/images/BerriesInhand.webp',
-        'story' => 'assets/images/FoodTruckPicture.webp',
-        'favicon' => 'assets/images/JamIcon.webp',
-        'lemonade' => 'assets/images/LemonadeWithHoney.webp',
-        'honey' => 'assets/images/HoneyandJamandBerries.webp',
-        'food' => 'assets/images/ImagesOfFoodOffered.webp',
+        'logo' => 'assets/images/VenableandVineLogo.png',
+        'hero_bg' => 'assets/images/BerriesInhand.png',
+        'story' => 'assets/images/FoodTruckPicture.jpg',
+        'favicon' => 'assets/images/JamIcon.png',
+        'lemonade' => 'assets/images/LemonadeWithHoney.jpg',
+        'honey' => 'assets/images/HoneyandJamandBerries.png',
+        'food' => 'assets/images/ImagesOfFoodOffered.jpg',
     ];
+}
+
+/** Resolve a stored image path to a file that exists on disk (handles .webp → .png/.jpg). */
+function resolve_image_path(?string $path): string
+{
+    if (!$path || str_starts_with($path, 'http')) {
+        return $path ?? '';
+    }
+    $relative = ltrim($path, '/');
+    if (is_file(PUBLIC_ROOT . '/' . $relative)) {
+        return $relative;
+    }
+    $dir = dirname($relative);
+    $base = pathinfo($relative, PATHINFO_FILENAME);
+    foreach (['png', 'jpg', 'jpeg', 'webp', 'gif'] as $ext) {
+        $try = $dir . '/' . $base . '.' . $ext;
+        if (is_file(PUBLIC_ROOT . '/' . $try)) {
+            return $try;
+        }
+    }
+    return $relative;
+}
+
+function media_picker_field(string $name, ?string $value = '', string $label = 'Image'): void
+{
+    $value = resolve_image_path($value);
+    $url = upload_url($value);
+    ?>
+    <div class="media-picker-field" data-media-picker>
+        <?php if ($label !== ''): ?><label><?= e($label) ?></label><?php endif; ?>
+        <input type="hidden" name="<?= e($name) ?>" value="<?= e($value) ?>" data-media-input>
+        <div class="media-picker-preview"<?= !$value ? ' style="display:none"' : '' ?>>
+            <img src="<?= e($url) ?>" alt="" data-media-preview>
+        </div>
+        <div class="media-picker-actions">
+            <button type="button" class="btn btn-sm" data-media-select>Select Image</button>
+            <button type="button" class="btn btn-sm btn-outline" data-media-upload>Upload Image</button>
+            <button type="button" class="btn btn-sm btn-muted" data-media-clear<?= !$value ? ' style="display:none"' : '' ?>>Clear</button>
+        </div>
+        <input type="file" accept="image/*" data-media-file hidden>
+    </div>
+    <?php
 }
 
 function list_asset_images(): array

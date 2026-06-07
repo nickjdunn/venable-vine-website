@@ -12,44 +12,55 @@ if (!$page) {
 }
 $pageId = (int) $page['id'];
 
-function seed_gallery_from_assets(): void
+function fix_layout_image_paths(array $layout): array
 {
-    if (!Settings::get('logo_path')) {
-        Settings::set('logo_path', 'assets/images/VenableandVineLogo.webp');
-    }
-    if (!Settings::get('favicon_path')) {
-        Settings::set('favicon_path', 'assets/images/JamIcon.webp');
-    }
-    if (GalleryRepository::all()) {
-        return;
-    }
-    $skip = ['Logo', 'JamIcon', 'BerriesInhand'];
-    foreach (list_asset_images() as $path) {
-        $base = basename($path);
-        foreach ($skip as $s) {
-            if (str_contains($base, $s)) {
-                continue 2;
+    $imageKeys = ['src', 'background_image', 'logo_image', 'image'];
+    foreach ($layout['rows'] ?? [] as &$row) {
+        foreach ($row['columns'] ?? [] as &$col) {
+            foreach ($col['blocks'] ?? [] as &$block) {
+                foreach ($imageKeys as $key) {
+                    if (!empty($block['config'][$key])) {
+                        $block['config'][$key] = resolve_image_path($block['config'][$key]);
+                    }
+                }
             }
         }
-        GalleryRepository::create($path, null);
+    }
+    unset($row, $col, $block);
+    return $layout;
+}
+
+function seed_media_and_settings(): void
+{
+    $defaults = default_brand_images();
+    MediaRepository::syncFromDisk();
+
+    $logo = resolve_image_path(Settings::get('logo_path') ?: $defaults['logo']);
+    $favicon = resolve_image_path(Settings::get('favicon_path') ?: $defaults['favicon']);
+    Settings::set('logo_path', $logo);
+    Settings::set('favicon_path', $favicon);
+
+    if (!MediaRepository::all()) {
+        foreach (list_asset_images() as $path) {
+            MediaRepository::create($path, [
+                'display_name' => pathinfo($path, PATHINFO_FILENAME),
+                'alt_text' => 'Venable & Vine',
+            ]);
+        }
     }
 }
 
 try {
     if ($action === 'get_builder_data') {
-        seed_gallery_from_assets();
+        seed_media_and_settings();
+        $layoutDesktop = fix_layout_image_paths(PageRepository::getLayout($pageId, 'desktop'));
+        $layoutMobile = fix_layout_image_paths(PageRepository::getLayout($pageId, 'mobile'));
         $categories = MenuRepository::categories(false);
-        $gallery = array_map(fn($g) => [
-            'id' => (int) $g['id'],
-            'file_path' => $g['file_path'],
-            'url' => upload_url($g['file_path']),
-            'caption' => $g['caption'],
-            'is_active' => (bool) $g['is_active'],
-        ], GalleryRepository::all());
+        $gallery = MediaRepository::all();
         json_response([
             'success' => true,
-            'layout_desktop' => PageRepository::getLayout($pageId, 'desktop'),
-            'layout_mobile' => PageRepository::getLayout($pageId, 'mobile'),
+            'layout_desktop' => $layoutDesktop,
+            'layout_mobile' => $layoutMobile,
             'block_types' => block_types(),
             'categories' => $categories,
             'gallery' => $gallery,
@@ -72,43 +83,8 @@ try {
             if (!isset($payload['layout']) || !is_array($payload['layout'])) {
                 json_response(['success' => false, 'message' => 'Invalid layout']);
             }
-            PageRepository::saveLayout($pageId, $viewport, $payload['layout']);
+            PageRepository::saveLayout($pageId, $viewport, fix_layout_image_paths($payload['layout']));
             json_response(['success' => true, 'message' => ucfirst($viewport) . ' layout saved']);
-        })(),
-        'gallery_upload' => (function () {
-            Csrf::requireValid();
-            if (empty($_FILES['photo'])) {
-                json_response(['success' => false, 'message' => 'No file uploaded']);
-            }
-            $path = Upload::image($_FILES['photo'], 'gallery');
-            $id = GalleryRepository::create($path, $_POST['caption'] ?? null);
-            $row = GalleryRepository::find($id);
-            json_response(['success' => true, 'image' => [
-                'id' => $id,
-                'file_path' => $path,
-                'url' => upload_url($path),
-                'caption' => $row['caption'] ?? '',
-                'is_active' => true,
-            ]]);
-        })(),
-        'gallery_delete' => (function () {
-            Csrf::requireValid();
-            $id = (int) ($_POST['id'] ?? 0);
-            GalleryRepository::delete($id);
-            json_response(['success' => true]);
-        })(),
-        'gallery_toggle' => (function () {
-            Csrf::requireValid();
-            $id = (int) ($_POST['id'] ?? 0);
-            $img = GalleryRepository::find($id);
-            if ($img) {
-                GalleryRepository::update($id, [
-                    'caption' => $img['caption'],
-                    'sort_order' => $img['sort_order'],
-                    'is_active' => !$img['is_active'],
-                ]);
-            }
-            json_response(['success' => true]);
         })(),
         default => json_response(['success' => false, 'message' => 'Unknown action'], 400),
     };

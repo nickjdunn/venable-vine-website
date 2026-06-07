@@ -38,9 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existing = MenuRepository::item($itemId);
                 $photoPath = $existing['photo_path'] ?? null;
             }
-            if (!empty($_FILES['photo']['name'])) {
-                if ($photoPath) Upload::delete($photoPath);
-                $photoPath = Upload::image($_FILES['photo'], 'menu');
+            if (!empty($_POST['photo_path'])) {
+                $photoPath = resolve_image_path(trim($_POST['photo_path']));
+            } elseif (isset($_POST['photo_path']) && $_POST['photo_path'] === '') {
+                $photoPath = null;
             }
             $selectedTags = [];
             foreach (array_keys($tags) as $key) {
@@ -105,7 +106,7 @@ require ROOT . '/includes/templates/admin-header.php';
     <div id="tab-items" class="tab-panel active">
         <div class="card">
             <h3><?= $editItem ? 'Edit Item' : 'Add Menu Item' ?></h3>
-            <form method="post" enctype="multipart/form-data">
+            <form method="post">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="action" value="save_item">
                 <?php if ($editItem): ?><input type="hidden" name="item_id" value="<?= (int)$editItem['id'] ?>"><?php endif; ?>
@@ -135,11 +136,7 @@ require ROOT . '/includes/templates/admin-header.php';
                         <input type="text" name="price_note" placeholder="e.g. Market price" value="<?= e($editItem['price_note'] ?? '') ?>">
                     </div>
                 </div>
-                <label>Photo</label>
-                <input type="file" name="photo" accept="image/*">
-                <?php if (!empty($editItem['photo_path'])): ?>
-                    <img src="<?= e(upload_url($editItem['photo_path'])) ?>" class="item-thumb" alt="">
-                <?php endif; ?>
+                <?php media_picker_field('photo_path', $editItem['photo_path'] ?? '', 'Photo'); ?>
                 <div class="tag-checkboxes">
                     <?php foreach ($tags as $key => $label): ?>
                         <label><input type="checkbox" name="tag_<?= e($key) ?>"<?= in_array($key, $editItem['dietary_tags'] ?? [], true) ? ' checked' : '' ?>> <?= e($label) ?></label>

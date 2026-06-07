@@ -91,13 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const defaults = {
             title: { text: 'Section Title', level: 'h2', align: 'center' },
             text: { content: 'Your text here...', align: 'left' },
-            image: { src: (builderData.asset_images || [])[0] || '', alt: '', caption: '' },
+            image: { src: (builderData.asset_images || [])[0] || 'assets/images/ImagesOfFoodOffered.jpg', alt: '', caption: '' },
             button: { text: 'Learn More', link: '/find-us.php', align: 'center' },
             spacer: { height: 40 },
             gallery: { title: 'A Glimpse of Our Goodness' },
             menu_category: { category_id: (builderData.categories || [])[0]?.id || 0, title: '' },
-            hero: { title: 'Freshly Squeezed. Family Made.', subtitle: '', background_image: 'assets/images/BerriesInhand.webp', logo_image: 'assets/images/VenableandVineLogo.webp', cta_text: 'Find The Truck Today', cta_link: '/find-us.php' },
-            story: { title: 'Our Story', paragraph1: '', paragraph2: '', image: 'assets/images/FoodTruckPicture.webp' },
+            hero: { title: 'Freshly Squeezed. Family Made.', subtitle: '', background_image: 'assets/images/BerriesInhand.png', logo_image: 'assets/images/VenableandVineLogo.png', cta_text: 'Find The Truck Today', cta_link: '/find-us.php' },
+            story: { title: 'Our Story', paragraph1: '', paragraph2: '', image: 'assets/images/FoodTruckPicture.jpg' },
             menu_preview: { title: 'Taste the Sunshine', show_coming_soon: true, coming_soon_title: 'Coming Soon!', coming_soon_text: '', link_to_full_menu: true },
             reviews: { title: 'What Our Customers Say' },
             find_us: { title: 'Where to Find Us', text: '', show_facebook_button: true, max_events: 5 },
@@ -273,11 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 html += '</select>';
             } else if (type === 'image') {
-                html += `<label>${label}</label><select name="${key}">`;
-                (builderData.asset_images || []).forEach((p) => {
-                    html += `<option value="${escAttr(p)}"${val === p ? ' selected' : ''}>${esc(p.split('/').pop())}</option>`;
-                });
-                html += '</select>';
+                if (window.MediaPicker) {
+                    html += window.MediaPicker.imageFieldHtml(key, label, val);
+                } else {
+                    html += `<label>${label}</label><input type="text" name="${key}" value="${escAttr(val)}">`;
+                }
             } else {
                 html += `<label>${label}</label><input type="${type}" name="${key}" value="${escAttr(val)}">`;
             }
@@ -365,22 +365,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderGalleryManager() {
-        const imgs = builderData.gallery || [];
+        const imgs = (builderData.gallery || []).filter((img) => img.is_active);
         let html = '<div class="pb-gallery-manager"><h4>Gallery Photos</h4>';
+        html += '<p class="pb-hint">Photos are managed in the <a href="/admin/gallery.php" target="_blank">Media Library</a>. Active images appear here and on the site.</p>';
         if (!imgs.length) {
-            html += '<p class="pb-hint">No photos yet. Upload below.</p>';
+            html += '<p class="pb-hint">No active gallery photos yet. Upload images in the Media Library and mark them as visible.</p>';
         }
         html += '<div class="pb-gallery-grid">';
         imgs.forEach((img) => {
-            html += `<div class="pb-gallery-thumb${img.is_active ? '' : ' inactive'}">
+            html += `<div class="pb-gallery-thumb">
                 <img src="${escAttr(img.url)}" alt="">
-                <button type="button" class="btn btn-sm btn-danger pb-gdel" data-id="${img.id}">×</button>
             </div>`;
         });
-        html += '</div>';
-        html += `<label>Upload New Photo</label>
-            <input type="file" id="gallery-upload-input" accept="image/*">
-            <p class="pb-hint">Photos appear on the site gallery block and homepage.</p></div>`;
+        html += '</div></div>';
         return html;
     }
 
@@ -399,6 +396,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             setStatus('Block updated — click Save Page when ready', 'success');
         });
+        form?.querySelectorAll('[data-media-picker]').forEach((field) => {
+            window.MediaPicker?.bindField(field);
+            field.querySelector('[data-media-input]')?.addEventListener('change', () => {
+                const input = field.querySelector('[data-media-input]');
+                if (input) block.config[input.name] = input.value;
+            });
+        });
         document.getElementById('delete-block-btn')?.addEventListener('click', () => {
             if (!confirm('Delete this block?')) return;
             const col = findColumn(rowId, colId);
@@ -407,41 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
             inspector.innerHTML = '<p class="pb-hint">Click a block to edit it here.</p>';
             renderCanvas();
         });
-        document.querySelectorAll('.pb-gdel').forEach((btn) => {
-            btn.addEventListener('click', async () => {
-                if (!confirm('Remove this photo from the gallery?')) return;
-                const fd = new FormData();
-                fd.append('action', 'gallery_delete');
-                fd.append('id', btn.dataset.id);
-                fd.append('_csrf', window.CSRF_TOKEN);
-                await fetch('/api/page-builder.php', { method: 'POST', body: fd });
-                await reloadGallery();
-                selectBlock(rowId, colId, block.id);
-            });
-        });
-        document.getElementById('gallery-upload-input')?.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const fd = new FormData();
-            fd.append('action', 'gallery_upload');
-            fd.append('photo', file);
-            fd.append('_csrf', window.CSRF_TOKEN);
-            const res = await fetch('/api/page-builder.php', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (data.success) {
-                await reloadGallery();
-                selectBlock(rowId, colId, block.id);
-                setStatus('Photo uploaded', 'success');
-            } else {
-                setStatus(data.message || 'Upload failed', 'error');
-            }
-        });
-    }
-
-    async function reloadGallery() {
-        const res = await fetch('/api/page-builder.php?action=get_builder_data');
-        const data = await res.json();
-        if (data.success) builderData.gallery = data.gallery;
     }
 
     document.getElementById('add-row-btn')?.addEventListener('click', () => {
