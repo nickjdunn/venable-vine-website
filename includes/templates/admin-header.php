@@ -16,7 +16,7 @@ $user = Auth::user();
         <link rel="stylesheet" href="<?= e($css) ?>">
     <?php endforeach; endif; ?>
 </head>
-<body class="admin-body">
+<body class="admin-body<?= !empty($adminBodyClass) ? ' ' . e($adminBodyClass) : '' ?>">
 <header class="admin-topbar">
     <a href="/admin/dashboard.php" class="admin-brand">V&V Admin</a>
     <button class="admin-nav-toggle" aria-label="Menu">☰</button>

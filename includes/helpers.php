@@ -444,6 +444,25 @@ function normalize_layout(array $layout): array
     return ['rows' => $rows];
 }
 
+/** True if layout has column rows or non-module blocks (legacy page builder). */
+function layout_needs_homepage_normalize(array $layout): bool
+{
+    $modules = homepage_module_types();
+    foreach (normalize_layout($layout)['rows'] as $row) {
+        if (($row['layout'] ?? 'full') === 'columns') {
+            return true;
+        }
+        foreach ($row['columns'] ?? [] as $col) {
+            foreach ($col['blocks'] ?? [] as $block) {
+                if (!in_array($block['type'] ?? '', $modules, true)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 /** Flatten desktop rows into single-column full-width rows for mobile. */
 function mobile_layout_from_layout(array $desktop): array
 {
@@ -525,6 +544,155 @@ function format_event_datetime(string $datetime): string
 {
     $dt = new DateTime($datetime);
     return $dt->format('l, F j, Y');
+}
+
+/** Whether section templates render editable markup (homepage editor only). */
+function editor_mode(?bool $set = null): bool
+{
+    static $mode = false;
+    if ($set !== null) {
+        $mode = $set;
+    }
+    return $mode;
+}
+
+/** Homepage module section types in default order. */
+function homepage_module_types(): array
+{
+    return array_keys(block_types()['modules']);
+}
+
+/**
+ * Normalize layout to exactly the 9 homepage module sections (drops columns/basic blocks).
+ * Preserves user order for saved modules; appends missing defaults.
+ */
+function normalize_homepage_layout(array $layout): array
+{
+    $modules = homepage_module_types();
+    $ordered = [];
+    $seen = [];
+    foreach (normalize_layout($layout)['rows'] as $row) {
+        foreach ($row['columns'] ?? [] as $col) {
+            foreach ($col['blocks'] ?? [] as $block) {
+                $type = $block['type'] ?? '';
+                if (!in_array($type, $modules, true)) {
+                    continue;
+                }
+                $ordered[] = [
+                    'id' => $block['id'] ?? ('block_' . uniqid()),
+                    'type' => $type,
+                    'config' => is_array($block['config'] ?? null) ? $block['config'] : [],
+                    'active' => !isset($block['active']) || $block['active'],
+                ];
+                $seen[$type] = true;
+            }
+        }
+    }
+    foreach (default_homepage_layout()['rows'] as $defRow) {
+        $defBlock = $defRow['columns'][0]['blocks'][0];
+        $type = $defBlock['type'];
+        if (empty($seen[$type])) {
+            $ordered[] = $defBlock;
+        }
+    }
+    $rows = [];
+    foreach ($ordered as $i => $block) {
+        $rows[] = [
+            'id' => 'row_' . ($i + 1),
+            'layout' => 'full',
+            'columns' => [[
+                'id' => 'col_' . ($i + 1),
+                'blocks' => [$block],
+            ]],
+        ];
+    }
+    return ['rows' => $rows];
+}
+
+/** Inline-editable single-line text (editor mode only). */
+function editable_text(string $field, string $value, string $tag = 'span', string $class = ''): void
+{
+    $value = (string) $value;
+    if (!editor_mode()) {
+        $attr = $class !== '' ? ' class="' . e($class) . '"' : '';
+        echo '<' . $tag . $attr . '>' . e($value) . '</' . $tag . '>';
+        return;
+    }
+    $cls = trim('se-editable ' . $class);
+    echo '<' . $tag . ' class="' . e($cls) . '" contenteditable="true" data-field="' . e($field) . '" spellcheck="true">';
+    echo e($value);
+    echo '</' . $tag . '>';
+}
+
+/** Inline-editable multiline text (paragraphs). */
+function editable_multiline(string $field, string $value, string $tag = 'p', string $class = ''): void
+{
+    $value = (string) $value;
+    if (!editor_mode()) {
+        if ($value === '') {
+            return;
+        }
+        $attr = $class !== '' ? ' class="' . e($class) . '"' : '';
+        echo '<' . $tag . $attr . '>' . nl2br(e($value)) . '</' . $tag . '>';
+        return;
+    }
+    $cls = trim('se-editable se-editable-multiline ' . $class);
+    echo '<' . $tag . ' class="' . e($cls) . '" contenteditable="true" data-field="' . e($field) . '" spellcheck="true">';
+    echo nl2br(e($value));
+    echo '</' . $tag . '>';
+}
+
+/** Editable CTA button (text + link fields). */
+function editable_cta(string $textField, string $linkField, string $text, string $link, string $class = 'cta-button'): void
+{
+    $text = (string) $text;
+    $link = (string) $link;
+    if (!editor_mode()) {
+        if ($text === '' || $link === '') {
+            return;
+        }
+        echo '<a href="' . e($link) . '" class="' . e($class) . '">' . e($text) . '</a>';
+        return;
+    }
+    echo '<span class="se-cta-wrap">';
+    echo '<a href="' . e($link ?: '#') . '" class="' . e($class) . ' se-editable se-editable-cta" contenteditable="true" data-field="' . e($textField) . '" data-link-field="' . e($linkField) . '" data-href="' . e($link) . '">';
+    echo e($text ?: 'Button text');
+    echo '</a>';
+    echo '</span>';
+}
+
+/** Clickable image zone for editor (Add Photo). */
+function editable_image(string $field, string $path, string $alt = '', string $imgClass = ''): void
+{
+    $path = resolve_image_path($path);
+    $url = upload_url($path);
+    if (!editor_mode()) {
+        if (!$url) {
+            return;
+        }
+        echo '<img src="' . e($url) . '" alt="' . e($alt) . '" class="' . e($imgClass) . '" loading="lazy">';
+        return;
+    }
+    echo '<div class="se-image-zone" data-field="' . e($field) . '" data-path="' . e($path) . '">';
+    if ($url) {
+        echo '<img src="' . e($url) . '" alt="' . e($alt) . '" class="' . e($imgClass) . '">';
+    } else {
+        echo '<div class="se-image-placeholder"><span>Add Photo</span></div>';
+    }
+    echo '<button type="button" class="se-image-btn">Add Photo</button>';
+    echo '</div>';
+}
+
+/** Editor-only placeholder for data managed elsewhere. */
+function editor_placeholder(string $message, string $adminUrl, string $linkLabel): void
+{
+    if (!editor_mode()) {
+        return;
+    }
+    echo '<div class="se-managed-placeholder">';
+    echo '<p>' . e($message) . '</p>';
+    echo '<a href="' . e($adminUrl) . '" class="btn btn-sm btn-outline" target="_blank">' . e($linkLabel) . ' →</a>';
+    echo '</div>';
 }
 
 function format_event_time(string $datetime): string

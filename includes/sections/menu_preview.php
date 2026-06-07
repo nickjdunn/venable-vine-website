@@ -1,11 +1,16 @@
 <?php
 $grouped = MenuRepository::itemsGrouped(true);
-$tags = dietary_tags();
 ?>
 <section id="menu" class="section-menu-preview">
     <div class="container menu-preview-inner">
-        <h2><?= e($config['title'] ?? 'Our Menu') ?></h2>
-        <?php if (empty($grouped)): ?>
+        <?php editable_text('title', $config['title'] ?? 'Our Menu', 'h2'); ?>
+        <?php if (editor_mode()): ?>
+            <?php editor_placeholder(
+                'Menu items are pulled from your Menu admin. Featured items appear here on the live site.',
+                '/admin/menu.php',
+                'Manage Menu'
+            ); ?>
+        <?php elseif (empty($grouped)): ?>
             <p class="text-center">Menu coming soon!</p>
         <?php else: ?>
             <div class="menu-grid">
@@ -29,13 +34,17 @@ $tags = dietary_tags();
         <?php endif; ?>
         <?php if (!empty($config['show_coming_soon'])): ?>
             <div class="coming-soon-box">
-                <h3><?= e($config['coming_soon_title'] ?? 'Coming Soon!') ?></h3>
-                <div><?= e($config['coming_soon_text'] ?? '') ?></div>
+                <?php editable_text('coming_soon_title', $config['coming_soon_title'] ?? 'Coming Soon!', 'h3'); ?>
+                <?php editable_multiline('coming_soon_text', $config['coming_soon_text'] ?? '', 'div'); ?>
             </div>
         <?php endif; ?>
-        <?php if (!empty($config['link_to_full_menu'])): ?>
+        <?php if (!empty($config['link_to_full_menu']) && !editor_mode()): ?>
             <p class="text-center" style="margin-top:2rem;">
                 <a href="/menu.php" class="cta-button">View Full Menu</a>
+            </p>
+        <?php elseif (editor_mode() && !empty($config['link_to_full_menu'])): ?>
+            <p class="text-center se-static-preview" style="margin-top:2rem;">
+                <span class="cta-button">View Full Menu</span>
             </p>
         <?php endif; ?>
     </div>

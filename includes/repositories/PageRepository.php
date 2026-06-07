@@ -52,19 +52,12 @@ class PageRepository
                 $saved = true;
             }
         } else {
-            $normalized = normalize_layout($desktop);
-            $hasColumns = false;
-            foreach ($normalized['rows'] as $row) {
-                if (($row['layout'] ?? 'full') === 'columns') {
-                    $hasColumns = true;
-                    break;
-                }
-            }
-            if ($hasColumns) {
-                $stacked = mobile_layout_from_layout($normalized);
-                self::saveLayout($pageId, 'desktop', $stacked);
-                self::saveLayout($pageId, 'mobile', $stacked);
+            if (layout_needs_homepage_normalize($desktop)) {
+                $homepage = normalize_homepage_layout($desktop);
+                self::saveLayout($pageId, 'desktop', $homepage);
+                self::saveLayout($pageId, 'mobile', mobile_layout_from_layout($homepage));
                 $saved = true;
+                $desktop = $homepage;
             }
         }
         $mobile = self::getStoredLayout($pageId, 'mobile');

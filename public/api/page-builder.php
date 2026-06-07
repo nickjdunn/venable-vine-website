@@ -48,7 +48,7 @@ try {
     if ($action === 'get_builder_data') {
         seed_media_and_settings();
         PageRepository::ensureLayoutsPersisted($pageId);
-        $layout = fix_layout_image_paths(PageRepository::getLayout($pageId, 'desktop'));
+        $layout = fix_layout_image_paths(normalize_homepage_layout(PageRepository::getLayout($pageId, 'desktop')));
         // #region agent log
         agent_debug_log('C', 'page-builder.php:get_builder_data', 'layout loaded', [
             'rows' => count($layout['rows'] ?? []),
@@ -95,9 +95,11 @@ try {
             if (!isset($payload['layout']) || !is_array($payload['layout'])) {
                 json_response(['success' => false, 'message' => 'Invalid layout']);
             }
-            PageRepository::saveLayout($pageId, $viewport, fix_layout_image_paths($payload['layout']));
+            $normalized = normalize_homepage_layout($payload['layout']);
+            $fixed = fix_layout_image_paths($normalized);
+            PageRepository::saveLayout($pageId, $viewport, $fixed);
             if ($viewport === 'desktop') {
-                PageRepository::saveLayout($pageId, 'mobile', fix_layout_image_paths($payload['layout']));
+                PageRepository::saveLayout($pageId, 'mobile', fix_layout_image_paths(mobile_layout_from_layout($normalized)));
             }
             json_response(['success' => true, 'message' => 'Page layout saved']);
         })(),
