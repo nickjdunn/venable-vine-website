@@ -22,26 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clientLog(hypothesisId, message, data = {}) {
+        if (!window.AGENT_DEBUG_ENABLED) return;
         // #region agent log
-        fetch('http://127.0.0.1:7709/ingest/55c5d319-00f7-40e2-8cfc-95a4896d60d5', {
+        fetch('/api/admin-log.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '684396' },
-            body: JSON.stringify({ sessionId: '684396', hypothesisId, location: 'page-builder.js', message, data, timestamp: Date.now() }),
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({
+                message: 'PB: ' + message,
+                page: window.location.pathname,
+                hypothesisId,
+                data,
+                _csrf: window.CSRF_TOKEN,
+            }),
         }).catch(() => {});
-        if (window.CSRF_TOKEN) {
-            fetch('/api/admin-log.php', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({
-                    message: 'PB: ' + message,
-                    page: window.location.pathname,
-                    hypothesisId,
-                    data,
-                    _csrf: window.CSRF_TOKEN,
-                }),
-            }).catch(() => {});
-        }
         // #endregion
     }
 
@@ -50,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const copy = {
                 id: row.id || uid('row'),
                 layout: row.layout === 'columns' ? 'columns' : 'full',
+                column_count: row.layout === 'columns' ? (row.column_count || (row.columns?.length === 2 ? 2 : 3)) : undefined,
                 columns: Array.isArray(row.columns) ? row.columns.map((col) => ({
                     id: col.id || uid('col'),
                     blocks: Array.isArray(col.blocks) ? col.blocks : [],
@@ -132,16 +127,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return row;
     }
 
-    function newColumnRow() {
-        return {
-            id: uid('row'),
-            layout: 'columns',
-            columns: [
-                { id: uid('col'), blocks: [] },
-                { id: uid('col'), blocks: [] },
-                { id: uid('col'), blocks: [] },
-            ],
-        };
+    function newColumnRow(columnCount = 3) {
+        const cols = [];
+        for (let i = 0; i < columnCount; i++) {
+            cols.push({ id: uid('col'), blocks: [] });
+        }
+        return { id: uid('row'), layout: 'columns', column_count: columnCount, columns: cols };
+    }
+
+    function isBasicBlockType(type) {
+        return !!(builderData.block_types?.basic?.[type]);
+    }
+
+    function addBlockToColumn(rowId, colId, type) {
+        if (!isBasicBlockType(type)) {
+            alert('Only basic blocks (Title, Text, Image, Button, Spacer) can be placed in column rows.');
+            return;
+        }
+        const col = findColumn(rowId, colId);
+        if (!col) return;
+        const block = newBlock(type);
+        col.blocks.push(block);
+        renderCanvas();
+        selectBlock(rowId, colId, block.id);
     }
 
     function newBlock(type) {
@@ -204,17 +212,17 @@ document.addEventListener('DOMContentLoaded', () => {
         basic.innerHTML = '';
         modules.innerHTML = '';
         Object.entries(builderData.block_types?.modules || {}).forEach(([type, label]) => {
-            modules.appendChild(paletteBtn(type, label));
+            modules.appendChild(paletteBtn(type, label, true));
         });
         Object.entries(builderData.block_types?.basic || {}).forEach(([type, label]) => {
-            basic.appendChild(paletteBtn(type, label));
+            basic.appendChild(paletteBtn(type, label, false));
         });
     }
 
-    function paletteBtn(type, label) {
+    function paletteBtn(type, label, isModule) {
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = 'btn btn-sm btn-outline pb-palette-btn pb-palette-section';
+        b.className = 'btn btn-sm btn-outline pb-palette-btn' + (isModule ? ' pb-palette-section' : '');
         b.textContent = '+ ' + label;
         b.draggable = true;
         b.dataset.blockType = type;
@@ -271,18 +279,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRow(row, rowIndex) {
         const isFull = row.layout !== 'columns';
+        const colCount = isFull ? 1 : (row.column_count || row.columns?.length || 3);
         const columns = Array.isArray(row.columns) ? row.columns : [{ id: uid('col'), blocks: [] }];
         const rowEl = document.createElement('div');
         rowEl.className = 'pb-row' + (isFull ? ' pb-row--full' : ' pb-row--columns');
+        const rowLabel = isFull ? 'Section' : `${colCount}-Column Row`;
         rowEl.innerHTML = `<div class="pb-row-toolbar">
             <span class="pb-row-handle" title="Drag to reorder">☰</span>
-            <span class="pb-row-label">${isFull ? 'Section' : '3-Column Row'} ${rowIndex + 1}</span>
+            <span class="pb-row-label">${rowLabel} ${rowIndex + 1}</span>
             <button type="button" class="btn btn-sm btn-muted pb-row-up">↑</button>
             <button type="button" class="btn btn-sm btn-muted pb-row-down">↓</button>
             <button type="button" class="btn btn-sm btn-danger pb-row-del">Delete</button>
         </div>`;
         const body = document.createElement('div');
-        body.className = isFull ? 'pb-section-body' : 'pb-row-cols';
+        body.className = isFull ? 'pb-section-body' : ('pb-row-cols' + (colCount === 2 ? ' pb-row-cols--2' : ''));
         if (isFull) {
             const col = columns[0] || { id: uid('col'), blocks: [] };
             const blocks = Array.isArray(col.blocks) ? col.blocks : [];
@@ -292,17 +302,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 blocks.forEach((block) => body.appendChild(renderSectionCard(block, row.id, col.id)));
             }
         } else {
-            columns.forEach((col, colIndex) => {
+            for (let colIndex = 0; colIndex < colCount; colIndex++) {
+                const col = columns[colIndex] || { id: uid('col'), blocks: [] };
+                if (!columns[colIndex]) columns[colIndex] = col;
                 const colEl = document.createElement('div');
                 colEl.className = 'pb-col';
                 colEl.innerHTML = `<div class="pb-col-label">Column ${colIndex + 1}</div>`;
                 const list = document.createElement('div');
                 list.className = 'pb-block-list';
-                (Array.isArray(col.blocks) ? col.blocks : []).forEach((block) => list.appendChild(renderBlockChip(block, row.id, col.id)));
+                const blocks = Array.isArray(col.blocks) ? col.blocks : [];
+                if (!blocks.length) {
+                    const hint = document.createElement('p');
+                    hint.className = 'pb-col-hint';
+                    hint.textContent = 'Drag basic blocks here';
+                    list.appendChild(hint);
+                } else {
+                    blocks.forEach((block) => list.appendChild(renderBlockChip(block, row.id, col.id)));
+                }
+                const addBar = document.createElement('div');
+                addBar.className = 'pb-col-add';
+                const select = document.createElement('select');
+                select.className = 'pb-col-add-select';
+                select.innerHTML = '<option value="">+ Add block…</option>' +
+                    Object.entries(builderData.block_types?.basic || {})
+                        .map(([t, l]) => `<option value="${escAttr(t)}">${esc(l)}</option>`).join('');
+                select.addEventListener('change', () => {
+                    if (select.value) {
+                        addBlockToColumn(row.id, col.id, select.value);
+                        select.value = '';
+                    }
+                });
+                addBar.appendChild(select);
                 colEl.appendChild(list);
+                colEl.appendChild(addBar);
                 body.appendChild(colEl);
                 initBlockSortable(list, row.id, col.id);
-            });
+                initColumnDropZone(list, row.id, col.id);
+            }
+            row.columns = columns.slice(0, colCount);
+            row.column_count = colCount;
         }
         rowEl.appendChild(body);
         rowEl.querySelector('.pb-row-up').addEventListener('click', () => moveRow(rowIndex, -1));
@@ -351,6 +389,27 @@ document.addEventListener('DOMContentLoaded', () => {
             el.classList.toggle('inactive', !block.active);
         });
         return el;
+    }
+
+    function initColumnDropZone(listEl, rowId, colId) {
+        listEl.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            listEl.classList.add('pb-col-drop-active');
+        });
+        listEl.addEventListener('dragleave', (e) => {
+            if (!listEl.contains(e.relatedTarget)) {
+                listEl.classList.remove('pb-col-drop-active');
+            }
+        });
+        listEl.addEventListener('drop', (e) => {
+            e.preventDefault();
+            listEl.classList.remove('pb-col-drop-active');
+            const type = e.dataTransfer.getData('blockType');
+            if (type && isBasicBlockType(type)) {
+                addBlockToColumn(rowId, colId, type);
+            }
+        });
     }
 
     function initBlockSortable(listEl, rowId, colId) {
@@ -464,8 +523,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('add-column-row-btn')?.addEventListener('click', () => {
-        pageLayout.rows.push(newColumnRow());
+        pageLayout.rows.push(newColumnRow(3));
         renderCanvas();
+    });
+
+    document.getElementById('add-column-row-2-btn')?.addEventListener('click', () => {
+        pageLayout.rows.push(newColumnRow(2));
+        renderCanvas();
+    });
+
+    document.getElementById('reset-layout-btn')?.addEventListener('click', async () => {
+        if (!confirm('Reset the homepage to the original default layout? This replaces all current sections and cannot be undone until you save again.')) {
+            return;
+        }
+        setStatus('Resetting to defaults…', '');
+        try {
+            const { data } = await apiFetch('/api/page-builder.php?action=reset_layout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF_TOKEN },
+                body: JSON.stringify({ _csrf: window.CSRF_TOKEN }),
+            });
+            if (!data.success) throw new Error(data.message);
+            applyBuilderData({ ...builderData, success: true, layout: data.layout, layout_desktop: data.layout });
+            selected = null;
+            inspector.innerHTML = '<p class="pb-hint">Click a section or block to edit it here.</p>';
+            setStatus('Homepage reset to defaults and saved.', 'success');
+        } catch (err) {
+            setStatus(err.message || 'Reset failed', 'error');
+        }
     });
 
     saveBtn?.addEventListener('click', async () => {

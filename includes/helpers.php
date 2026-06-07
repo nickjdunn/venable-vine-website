@@ -22,9 +22,31 @@ function paths_match(string $a, string $b): bool
     return $ra && $rb && $ra === $rb;
 }
 
-/** Debug-mode NDJSON log (session 684396). */
+/** Whether agent debug tracing is enabled (Admin → Debug toggle). */
+function agent_debug_enabled(): bool
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+    if (!class_exists('Settings', false)) {
+        $cached = false;
+        return false;
+    }
+    try {
+        $cached = Settings::get('agent_debug_enabled', '0') === '1';
+    } catch (Throwable) {
+        $cached = false;
+    }
+    return $cached;
+}
+
+/** Debug-mode NDJSON log (session 684396). No-op when agent debug is disabled. */
 function agent_debug_log(string $hypothesisId, string $location, string $message, array $data = []): void
 {
+    if (!agent_debug_enabled()) {
+        return;
+    }
     $entry = json_encode([
         'sessionId' => '684396',
         'hypothesisId' => $hypothesisId,
@@ -179,7 +201,7 @@ function media_picker_field(string $name, ?string $value = '', string $label = '
             <img src="<?= e($url) ?>" alt="" data-media-preview>
         </div>
         <div class="media-picker-actions">
-            <button type="button" class="btn btn-sm btn-outline" data-media-upload>Upload Image</button>
+            <button type="button" class="btn btn-sm btn-outline" data-media-select>Add Photo</button>
             <button type="button" class="btn btn-sm btn-muted" data-media-clear<?= !$value ? ' style="display:none"' : '' ?>>Clear</button>
         </div>
         <input type="file" accept="image/*" data-media-file hidden>
@@ -250,8 +272,8 @@ function default_block_config(string $type): array
         ],
         'story' => [
             'title' => 'From Our Family to Yours',
-            'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients.',
-            'paragraph2' => 'Every drink is muddled right in front of you.',
+            'paragraph1' => 'Venable & Vine started around our kitchen table, with a love for simple, real ingredients. Our kids loved the fresh-squeezed lemonade we\'d make on hot summer days, and we loved the honey from the hives buzzing in our backyard. We thought, why not share this?',
+            'paragraph2' => 'Every drink is muddled right in front of you. The \'Vine\' in our name represents the fresh fruit we use, and \'Venable\' is our family name—a promise of quality and care in everything we serve. We\'re proud to be family-owned and operated, and we can\'t wait to share a little piece of our home with you.',
             'image' => $img['story'],
         ],
         'menu_category' => ['category_id' => 0, 'title' => ''],
@@ -301,6 +323,22 @@ function default_layout_from_sections(array $sections): array
 function empty_layout(): array
 {
     return ['rows' => []];
+}
+
+/** Original homepage section stack (matches sql/schema.sql defaults). */
+function default_homepage_layout(): array
+{
+    $types = ['hero', 'menu_preview', 'story', 'gallery', 'reviews', 'find_us', 'contact', 'newsletter', 'social'];
+    $sections = [];
+    foreach ($types as $i => $type) {
+        $sections[] = [
+            'id' => $i + 1,
+            'section_type' => $type,
+            'is_active' => true,
+            'config' => default_section_config($type),
+        ];
+    }
+    return normalize_layout(default_layout_from_sections($sections));
 }
 
 function default_section_config(string $type): array
@@ -383,20 +421,25 @@ function normalize_layout(array $layout): array
                 'blocks' => $blocks,
             ]];
         } else {
-            while (count($columns) < 3) {
+            $colCount = max(2, min(3, (int) ($row['column_count'] ?? 3)));
+            while (count($columns) < $colCount) {
                 $columns[] = ['id' => 'col_' . (count($columns) + 1), 'blocks' => []];
             }
-            $columns = array_slice($columns, 0, 3);
+            $columns = array_slice($columns, 0, $colCount);
             foreach ($columns as &$col) {
                 $col['blocks'] = is_array($col['blocks'] ?? null) ? $col['blocks'] : [];
             }
             unset($col);
         }
-        $rows[] = [
+        $entry = [
             'id' => $row['id'] ?? ('row_' . uniqid()),
             'layout' => $layoutMode,
             'columns' => $columns,
         ];
+        if ($layoutMode === 'columns') {
+            $entry['column_count'] = max(2, min(3, (int) ($row['column_count'] ?? count($columns))));
+        }
+        $rows[] = $entry;
     }
     return ['rows' => $rows];
 }

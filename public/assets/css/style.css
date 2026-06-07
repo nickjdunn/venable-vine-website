@@ -227,6 +227,9 @@ main { width: 100%; overflow-x: hidden; }
     max-width: 1100px;
     margin: 0 auto;
 }
+.layout-row--columns.layout-row--cols-2 {
+    grid-template-columns: 1fr 1fr;
+}
 .layout-row--full {
     display: block;
     max-width: none;

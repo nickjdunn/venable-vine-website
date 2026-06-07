@@ -42,6 +42,7 @@ require ROOT . '/includes/templates/admin-header.php';
     </div>
     <div class="pb-header-actions">
         <a href="/" target="_blank" class="btn btn-outline btn-sm">View Live Site</a>
+        <button type="button" id="reset-layout-btn" class="btn btn-outline btn-sm">Reset to Defaults</button>
         <button type="button" id="save-layout-btn" class="btn btn-success">Save Page</button>
     </div>
 </div>
@@ -55,6 +56,7 @@ require ROOT . '/includes/templates/admin-header.php';
         <h3>Basic Blocks</h3>
         <div id="palette-basic" class="pb-palette-list"></div>
         <hr>
+        <button type="button" id="add-column-row-2-btn" class="btn btn-sm btn-outline" style="width:100%;margin-bottom:0.35rem">+ Add 2-Column Row</button>
         <button type="button" id="add-column-row-btn" class="btn btn-sm btn-outline" style="width:100%">+ Add 3-Column Row</button>
     </aside>
 

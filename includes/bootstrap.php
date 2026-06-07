@@ -4,6 +4,12 @@ define('ROOT', dirname(__DIR__));
 require_once ROOT . '/includes/helpers.php';
 define('PUBLIC_ROOT', resolve_public_root(ROOT));
 
+session_start();
+require_once ROOT . '/includes/Database.php';
+require_once ROOT . '/includes/Auth.php';
+require_once ROOT . '/includes/Csrf.php';
+require_once ROOT . '/includes/Settings.php';
+
 // #region agent log
 agent_debug_log('A', 'bootstrap.php', 'PUBLIC_ROOT resolved', [
     'PUBLIC_ROOT' => PUBLIC_ROOT,
@@ -13,12 +19,6 @@ agent_debug_log('A', 'bootstrap.php', 'PUBLIC_ROOT resolved', [
     'public_html_exists' => is_dir(ROOT . '/public_html'),
 ]);
 // #endregion
-
-session_start();
-require_once ROOT . '/includes/Database.php';
-require_once ROOT . '/includes/Auth.php';
-require_once ROOT . '/includes/Csrf.php';
-require_once ROOT . '/includes/Settings.php';
 require_once ROOT . '/includes/Upload.php';
 require_once ROOT . '/includes/Mailer.php';
 require_once ROOT . '/includes/NewsletterService.php';

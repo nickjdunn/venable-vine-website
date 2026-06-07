@@ -33,7 +33,11 @@ function render_layout(array $layout): void
     $layout = normalize_layout($layout);
     foreach ($layout['rows'] as $row) {
         $isFull = ($row['layout'] ?? 'full') !== 'columns';
+        $colCount = (int) ($row['column_count'] ?? 3);
         $rowClass = $isFull ? 'layout-row layout-row--full' : 'layout-row layout-row--columns';
+        if (!$isFull && $colCount === 2) {
+            $rowClass .= ' layout-row--cols-2';
+        }
         echo '<div class="' . $rowClass . '">';
         if ($isFull) {
             foreach ($row['columns'][0]['blocks'] ?? [] as $block) {

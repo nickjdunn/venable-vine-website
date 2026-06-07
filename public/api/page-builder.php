@@ -108,6 +108,13 @@ try {
             PageRepository::saveLayout($pageId, 'mobile', $mobile);
             json_response(['success' => true, 'layout_mobile' => $mobile]);
         })(),
+        'reset_layout' => (function () use ($pageId) {
+            Csrf::requireValid();
+            $layout = fix_layout_image_paths(default_homepage_layout());
+            PageRepository::saveLayout($pageId, 'desktop', $layout);
+            PageRepository::saveLayout($pageId, 'mobile', mobile_layout_from_layout($layout));
+            json_response(['success' => true, 'layout' => $layout, 'message' => 'Homepage reset to default layout']);
+        })(),
         default => json_response(['success' => false, 'message' => 'Unknown action'], 400),
     };
 } catch (Throwable $e) {

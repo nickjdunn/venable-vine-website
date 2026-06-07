@@ -14,6 +14,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash('success', 'Log cleared.');
         redirect('/admin/debug.php');
     }
+    if ($action === 'toggle_agent_debug') {
+        $next = agent_debug_enabled() ? '0' : '1';
+        Settings::set('agent_debug_enabled', $next);
+        flash('success', $next === '1' ? 'Agent debug tracing enabled.' : 'Agent debug tracing disabled.');
+        redirect('/admin/debug.php');
+    }
+    if ($action === 'clear_agent_log') {
+        $agentLogFile = ROOT . '/debug-684396.log';
+        if (is_file($agentLogFile)) {
+            file_put_contents($agentLogFile, '');
+        }
+        flash('success', 'Agent debug trace cleared.');
+        redirect('/admin/debug.php');
+    }
 }
 
 $logLines = Logger::recent(300);
@@ -50,6 +64,7 @@ $tests['public_root_match'] = [
 ];
 $agentLogFile = ROOT . '/debug-684396.log';
 $agentLogLines = is_file($agentLogFile) ? array_slice(explode("\n", rtrim((string) file_get_contents($agentLogFile), "\n")), -50) : [];
+$agentDebugOn = agent_debug_enabled();
 
 require ROOT . '/includes/templates/admin-header.php';
 ?>
@@ -65,15 +80,34 @@ require ROOT . '/includes/templates/admin-header.php';
         <li><strong>Log file</strong> <code><?= e(ROOT . '/logs/app.log') ?></code></li>
         <li><strong>Log writable</strong> <?= $logWritable ? 'Yes' : '<span style="color:red">No — create ~/logs and chmod 755</span>' ?></li>
         <li><strong>Paths match</strong> <?= !empty($tests['public_root_match']['ok']) ? '<span class="debug-ok">Yes</span>' : '<span class="debug-fail">No — uploads/CSS may be broken</span>' ?></li>
+        <li><strong>Agent debug tracing</strong> <?= $agentDebugOn ? '<span class="debug-ok">On</span>' : 'Off' ?></li>
     </ul>
+    <form method="post" style="margin-top:0.75rem;">
+        <?= Csrf::field() ?>
+        <input type="hidden" name="action" value="toggle_agent_debug">
+        <button type="submit" class="btn btn-sm btn-outline"><?= $agentDebugOn ? 'Turn Off Agent Debug' : 'Turn On Agent Debug' ?></button>
+    </form>
 </div>
 
-<?php if (!empty($agentLogLines)): ?>
 <div class="card">
-    <h3>Agent debug trace</h3>
-    <pre class="debug-log"><?php foreach ($agentLogLines as $line): ?><?= e($line) . "\n" ?><?php endforeach; ?></pre>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+        <h3 style="margin:0;">Agent debug trace</h3>
+        <?php if (!empty($agentLogLines)): ?>
+        <form method="post" onsubmit="return confirm('Clear agent debug trace?');">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="action" value="clear_agent_log">
+            <button type="submit" class="btn btn-sm btn-muted">Clear Trace</button>
+        </form>
+        <?php endif; ?>
+    </div>
+    <?php if (!$agentDebugOn): ?>
+        <p class="pb-hint" style="text-align:left;">Agent debug tracing is off. Turn it on above to record bootstrap, layout, page builder, and upload events.</p>
+    <?php elseif (empty($agentLogLines)): ?>
+        <p>No trace entries yet. Visit the Page Builder or homepage to generate entries.</p>
+    <?php else: ?>
+        <pre class="debug-log"><?php foreach ($agentLogLines as $line): ?><?= e($line) . "\n" ?><?php endforeach; ?></pre>
+    <?php endif; ?>
 </div>
-<?php endif; ?>
 
 <div class="card">
     <h3>System checks</h3>
