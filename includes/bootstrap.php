@@ -1,7 +1,7 @@
 <?php
 
 define('ROOT', dirname(__DIR__));
-define('PUBLIC_ROOT', ROOT . '/public');
+define('PUBLIC_ROOT', is_dir(ROOT . '/public') ? ROOT . '/public' : ROOT . '/public_html');
 
 session_start();
 

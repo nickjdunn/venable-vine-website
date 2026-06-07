@@ -14,17 +14,25 @@
 
 In cPanel → **Git Version Control** → clone the repo, then click **Deploy HEAD Commit**.
 
-The repo includes `.cpanel.yml`, which deploys files to `~/venablevine/` on your server (preserves `config/database.php` and uploaded photos across deploys).
+The repo includes `.cpanel.yml`, which deploys on **Deploy HEAD Commit**:
 
-**Set document root** for your domain to:
+| Source (repo) | Destination (server) |
+|---------------|----------------------|
+| `public/` | `/home/venableandvine/public_html/` (your live website) |
+| `includes/` | `/home/venableandvine/includes/` |
+| `config/` | `/home/venableandvine/config/` (keeps existing `database.php`) |
+
+**No document root change needed** — cPanel serves `public_html` by default.
+
+In cPanel → **Git Version Control** → **Pull or Deploy** → **Deploy HEAD Commit**.
+
+If deploy fails with *"uncommitted changes"*, open Terminal or Git UI and run:
+```bash
+cd ~/repositories/venable-vine-website
+git reset --hard origin/main
+git clean -fd
 ```
-/home/YOUR_CPANEL_USERNAME/venablevine/public
-```
-(Domains → your domain → Document Root, or use cPanel's domain settings.)
-
-If deploy fails with *"uncommitted changes"*, open the repo in cPanel Git and run **Reset** on the branch, then deploy again.
-
-**Option B (manual):** Point document root to the `public/` folder inside the clone, or upload via FTP.
+Then deploy again.
 
 ### 2. Run the web installer (recommended)
 

@@ -1,9 +1,9 @@
 ---
-# cPanel Git deployment — deploys to ~/venablevine/
-# Set domain document root to: /home/YOUR_USER/venablevine/public
+# Deploys website files to public_html (web root) and app code to ~/includes + ~/config
 deployment:
   tasks:
-    - export DEPLOYPATH=$HOME/venablevine
-    - /bin/mkdir -p $DEPLOYPATH/public/uploads
-    - /bin/rsync -av --delete --exclude '.git' --exclude 'config/database.php' --exclude 'config/.installed' --exclude 'config/app.php' --exclude 'public/uploads/' --exclude 'Legacy_Venable_Vine_Website/' ./ $DEPLOYPATH/
-    - /bin/chmod 755 $DEPLOYPATH/public/uploads
+    - /bin/mkdir -p $HOME/public_html/uploads $HOME/includes $HOME/config
+    - /bin/rsync -av --delete --exclude 'uploads/' ./public/ $HOME/public_html/
+    - /bin/rsync -av --delete ./includes/ $HOME/includes/
+    - /bin/rsync -av --exclude 'database.php' --exclude '.installed' --exclude 'app.php' ./config/ $HOME/config/
+    - /bin/chmod 755 $HOME/public_html/uploads
