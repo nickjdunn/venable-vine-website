@@ -204,8 +204,8 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 .footer { background: var(--text-dark); color: var(--background-light); text-align: center; padding: 3rem 1rem; }
 .footer .logo-img-display { max-width: 180px; margin: 0 auto 1.5rem; display: block; }
 
-/* Page layout (desktop / mobile builder) */
-.layout-view.layout-mobile { display: none; }
+/* Homepage page builder layout — single responsive stack */
+.page-layout { width: 100%; }
 .layout-row--columns {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -231,8 +231,6 @@ h2::after { content: ''; display: block; width: 60px; height: 3px; background-co
 .block-menu-category { padding: 1rem 0; }
 
 @media (max-width: 768px) {
-    .layout-view.layout-desktop { display: none; }
-    .layout-view.layout-mobile { display: block; }
     .layout-row--columns { grid-template-columns: 1fr; padding: 1.5rem 1rem; }
 }
 

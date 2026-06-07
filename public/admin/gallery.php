@@ -3,7 +3,6 @@ require_once dirname(__DIR__, 2) . '/includes/bootstrap.php';
 Auth::requireLogin();
 
 $adminTitle = 'Media Library';
-MediaRepository::syncFromDisk();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::requireValid();
@@ -34,9 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'delete') {
             MediaRepository::delete((int) $_POST['id']);
             flash('success', 'Image deleted.');
-        } elseif ($action === 'sync') {
-            $count = MediaRepository::syncFromDisk();
-            flash('success', $count ? "Imported {$count} image(s) from assets/images/." : 'All folder images are already in the library.');
         }
     } catch (Throwable $e) {
         flash('error', $e->getMessage());
@@ -72,11 +68,6 @@ require ROOT . '/includes/templates/admin-header.php';
         <input type="text" name="title" placeholder="Optional title attribute">
         <button type="submit" class="btn">Upload to Media Library</button>
     </form>
-    <form method="post" style="margin-top:1rem;">
-        <?= Csrf::field() ?>
-        <input type="hidden" name="action" value="sync">
-        <button type="submit" class="btn btn-outline btn-sm">Sync images from assets/images/ folder</button>
-    </form>
 </div>
 
 <div class="card">
@@ -90,7 +81,7 @@ require ROOT . '/includes/templates/admin-header.php';
         <?php endforeach; ?>
     </div>
     <?php if (empty($images)): ?>
-        <p>No images yet. Upload above or sync from the server folder.</p>
+        <p>No images yet. Upload above to add photos.</p>
     <?php endif; ?>
 </div>
 

@@ -8,8 +8,6 @@ header('Content-Type: application/json');
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 try {
-    MediaRepository::syncFromDisk();
-
     if ($action === 'list') {
         json_response(['success' => true, 'items' => MediaRepository::all()]);
     }

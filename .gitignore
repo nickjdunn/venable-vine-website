@@ -6,6 +6,7 @@ public/uploads/*
 logs/*
 !logs/.gitkeep
 *.log
+debug-684396.log
 Legacy_Venable_Vine_Website/error_log
 .DS_Store
 Thumbs.db

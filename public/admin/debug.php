@@ -43,6 +43,13 @@ try {
 }
 
 $logWritable = is_writable(ROOT . '/logs') || (is_dir(ROOT . '/logs') === false && is_writable(ROOT));
+$docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+$tests['public_root_match'] = [
+    'ok' => paths_match(PUBLIC_ROOT, $docRoot),
+    'message' => 'PUBLIC_ROOT=' . PUBLIC_ROOT . ' | DOCUMENT_ROOT=' . $docRoot,
+];
+$agentLogFile = ROOT . '/debug-684396.log';
+$agentLogLines = is_file($agentLogFile) ? array_slice(explode("\n", rtrim((string) file_get_contents($agentLogFile), "\n")), -50) : [];
 
 require ROOT . '/includes/templates/admin-header.php';
 ?>
@@ -57,8 +64,16 @@ require ROOT . '/includes/templates/admin-header.php';
         <li><strong>PUBLIC_ROOT</strong> <code><?= e(PUBLIC_ROOT) ?></code></li>
         <li><strong>Log file</strong> <code><?= e(ROOT . '/logs/app.log') ?></code></li>
         <li><strong>Log writable</strong> <?= $logWritable ? 'Yes' : '<span style="color:red">No — create ~/logs and chmod 755</span>' ?></li>
+        <li><strong>Paths match</strong> <?= !empty($tests['public_root_match']['ok']) ? '<span class="debug-ok">Yes</span>' : '<span class="debug-fail">No — uploads/CSS may be broken</span>' ?></li>
     </ul>
 </div>
+
+<?php if (!empty($agentLogLines)): ?>
+<div class="card">
+    <h3>Agent debug trace</h3>
+    <pre class="debug-log"><?php foreach ($agentLogLines as $line): ?><?= e($line) . "\n" ?><?php endforeach; ?></pre>
+</div>
+<?php endif; ?>
 
 <div class="card">
     <h3>System checks</h3>

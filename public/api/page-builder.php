@@ -35,21 +35,10 @@ function seed_media_and_settings(): void
 {
     try {
         $defaults = default_brand_images();
-        MediaRepository::syncFromDisk();
-
         $logo = resolve_image_path(Settings::get('logo_path') ?: $defaults['logo']);
         $favicon = resolve_image_path(Settings::get('favicon_path') ?: $defaults['favicon']);
         Settings::set('logo_path', $logo);
         Settings::set('favicon_path', $favicon);
-
-        if (!MediaRepository::all()) {
-            foreach (list_asset_images() as $path) {
-                MediaRepository::create($path, [
-                    'display_name' => pathinfo($path, PATHINFO_FILENAME),
-                    'alt_text' => 'Venable & Vine',
-                ]);
-            }
-        }
     } catch (Throwable $e) {
         Logger::exception($e, ['context' => 'seed_media_and_settings']);
     }
@@ -59,19 +48,22 @@ try {
     if ($action === 'get_builder_data') {
         seed_media_and_settings();
         PageRepository::ensureLayoutsPersisted($pageId);
-        $layoutDesktop = fix_layout_image_paths(PageRepository::getLayout($pageId, 'desktop'));
-        $layoutMobile = fix_layout_image_paths(PageRepository::getLayout($pageId, 'mobile'));
+        $layout = fix_layout_image_paths(PageRepository::getLayout($pageId, 'desktop'));
+        // #region agent log
+        agent_debug_log('C', 'page-builder.php:get_builder_data', 'layout loaded', [
+            'rows' => count($layout['rows'] ?? []),
+            'PUBLIC_ROOT' => PUBLIC_ROOT,
+        ]);
+        // #endregion
         $categories = MenuRepository::categories(false);
         $gallery = MediaRepository::all();
         json_response([
             'success' => true,
-            'layout_desktop' => $layoutDesktop,
-            'layout_mobile' => $layoutMobile,
-            'mobile_persisted' => PageRepository::hasStoredLayout($pageId, 'mobile'),
+            'layout' => $layout,
+            'layout_desktop' => $layout,
             'block_types' => block_types(),
             'categories' => $categories,
             'gallery' => $gallery,
-            'asset_images' => list_asset_images(),
         ]);
     }
 
@@ -104,7 +96,10 @@ try {
                 json_response(['success' => false, 'message' => 'Invalid layout']);
             }
             PageRepository::saveLayout($pageId, $viewport, fix_layout_image_paths($payload['layout']));
-            json_response(['success' => true, 'message' => ucfirst($viewport) . ' layout saved']);
+            if ($viewport === 'desktop') {
+                PageRepository::saveLayout($pageId, 'mobile', fix_layout_image_paths($payload['layout']));
+            }
+            json_response(['success' => true, 'message' => 'Page layout saved']);
         })(),
         'reset_mobile' => (function () use ($pageId) {
             Csrf::requireValid();

@@ -7,44 +7,33 @@ class Upload
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return null;
         }
-        if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Upload failed.');
-        }
-        $maxBytes = app_config('upload_max_bytes', 5242880);
-        if ($file['size'] > $maxBytes) {
-            throw new RuntimeException('File is too large.');
-        }
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($file['tmp_name']);
-        $allowed = app_config('allowed_image_types', []);
-        if (!in_array($mime, $allowed, true)) {
-            throw new RuntimeException('Invalid file type.');
-        }
-        $ext = match ($mime) {
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            'image/gif' => 'gif',
-            default => 'bin',
-        };
-        $dir = PUBLIC_ROOT . '/uploads/' . trim($subdir, '/');
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        $filename = bin2hex(random_bytes(8)) . '.' . $ext;
-        $dest = $dir . '/' . $filename;
-        if (!move_uploaded_file($file['tmp_name'], $dest)) {
-            throw new RuntimeException('Could not save uploaded file.');
-        }
-        return 'uploads/' . trim($subdir, '/') . '/' . $filename;
+        $stored = self::storeImage($file, PUBLIC_ROOT . '/uploads/' . trim($subdir, '/'), 'uploads/' . trim($subdir, '/'));
+        return $stored['path'];
     }
 
-    /** Save to public assets/images/ (site media library). */
+    /** Save to assets/images/ as WebP when possible, otherwise original format. */
     public static function mediaImage(array $file): string
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             throw new RuntimeException('No file uploaded.');
         }
+        $dir = PUBLIC_ROOT . '/assets/images';
+        $stored = self::storeImage($file, $dir, 'assets/images');
+        // #region agent log
+        agent_debug_log('E', 'Upload.php:mediaImage', 'stored image', [
+            'path' => $stored['path'],
+            'format' => $stored['format'],
+            'PUBLIC_ROOT' => PUBLIC_ROOT,
+        ]);
+        // #endregion
+        return $stored['path'];
+    }
+
+    /**
+     * @return array{path: string, format: string}
+     */
+    private static function storeImage(array $file, string $absoluteDir, string $relativePrefix): array
+    {
         if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
             throw new RuntimeException('Upload failed.');
         }
@@ -58,26 +47,62 @@ class Upload
         if (!in_array($mime, $allowed, true)) {
             throw new RuntimeException('Invalid file type.');
         }
-        $ext = match ($mime) {
+        if (!is_dir($absoluteDir)) {
+            mkdir($absoluteDir, 0755, true);
+        }
+        $original = pathinfo($file['name'] ?? '', PATHINFO_FILENAME);
+        $safe = trim(substr(preg_replace('/[^a-zA-Z0-9_-]+/', '-', $original) ?: 'image', 0, 80), '-');
+        $token = bin2hex(random_bytes(4));
+        $fallbackExt = match ($mime) {
             'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
             'image/gif' => 'gif',
             default => 'bin',
         };
-        $original = pathinfo($file['name'] ?? '', PATHINFO_FILENAME);
-        $safe = preg_replace('/[^a-zA-Z0-9_-]+/', '-', $original) ?: 'image';
-        $safe = trim(substr($safe, 0, 80), '-');
-        $dir = PUBLIC_ROOT . '/assets/images';
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-        $filename = $safe . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
-        $dest = $dir . '/' . $filename;
-        if (!move_uploaded_file($file['tmp_name'], $dest)) {
+        $tmpOriginal = $absoluteDir . '/' . $safe . '-' . $token . '.' . $fallbackExt;
+        if (!move_uploaded_file($file['tmp_name'], $tmpOriginal)) {
             throw new RuntimeException('Could not save uploaded file.');
         }
-        return 'assets/images/' . $filename;
+        $webpPath = $absoluteDir . '/' . $safe . '-' . $token . '.webp';
+        if ($fallbackExt !== 'webp' && self::convertToWebp($tmpOriginal, $mime, $webpPath)) {
+            if (is_file($tmpOriginal)) {
+                unlink($tmpOriginal);
+            }
+            return [
+                'path' => trim($relativePrefix, '/') . '/' . basename($webpPath),
+                'format' => 'webp',
+            ];
+        }
+        return [
+            'path' => trim($relativePrefix, '/') . '/' . basename($tmpOriginal),
+            'format' => $fallbackExt,
+        ];
+    }
+
+    private static function convertToWebp(string $source, string $mime, string $dest): bool
+    {
+        if (!function_exists('imagewebp')) {
+            return false;
+        }
+        $image = match ($mime) {
+            'image/jpeg' => @imagecreatefromjpeg($source),
+            'image/png' => @imagecreatefrompng($source),
+            'image/gif' => @imagecreatefromgif($source),
+            'image/webp' => @imagecreatefromwebp($source),
+            default => null,
+        };
+        if (!$image) {
+            return false;
+        }
+        if ($mime === 'image/png') {
+            imagepalettetotruecolor($image);
+            imagealphablending($image, true);
+            imagesavealpha($image, true);
+        }
+        $ok = imagewebp($image, $dest, 85);
+        imagedestroy($image);
+        return $ok && is_file($dest);
     }
 
     public static function delete(?string $relativePath): void
@@ -88,6 +113,14 @@ class Upload
         $full = PUBLIC_ROOT . '/' . ltrim($relativePath, '/');
         if (is_file($full)) {
             unlink($full);
+        }
+        $base = pathinfo($full, PATHINFO_FILENAME);
+        $dir = dirname($full);
+        foreach (['webp', 'jpg', 'jpeg', 'png', 'gif'] as $ext) {
+            $alt = $dir . '/' . $base . '.' . $ext;
+            if ($alt !== $full && is_file($alt)) {
+                unlink($alt);
+            }
         }
     }
 }

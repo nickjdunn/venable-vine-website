@@ -1,11 +1,20 @@
 <?php
 
 define('ROOT', dirname(__DIR__));
-define('PUBLIC_ROOT', is_dir(ROOT . '/public') ? ROOT . '/public' : ROOT . '/public_html');
+require_once ROOT . '/includes/helpers.php';
+define('PUBLIC_ROOT', resolve_public_root(ROOT));
+
+// #region agent log
+agent_debug_log('A', 'bootstrap.php', 'PUBLIC_ROOT resolved', [
+    'PUBLIC_ROOT' => PUBLIC_ROOT,
+    'DOCUMENT_ROOT' => $_SERVER['DOCUMENT_ROOT'] ?? '',
+    'roots_match' => paths_match(PUBLIC_ROOT, $_SERVER['DOCUMENT_ROOT'] ?? ''),
+    'public_dir_exists' => is_dir(ROOT . '/public'),
+    'public_html_exists' => is_dir(ROOT . '/public_html'),
+]);
+// #endregion
 
 session_start();
-
-require_once ROOT . '/includes/helpers.php';
 require_once ROOT . '/includes/Database.php';
 require_once ROOT . '/includes/Auth.php';
 require_once ROOT . '/includes/Csrf.php';

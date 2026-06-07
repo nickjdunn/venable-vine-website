@@ -5,19 +5,25 @@ require_once ROOT . '/includes/blocks/render.php';
 function render_page_layout(int $pageId): void
 {
     PageRepository::ensureLayoutsPersisted($pageId);
-    $desktop = PageRepository::getLayout($pageId, 'desktop');
-    $mobile = PageRepository::getLayout($pageId, 'mobile');
+    $layout = PageRepository::getLayout($pageId, 'desktop');
 
-    if (empty($desktop['rows']) && empty($mobile['rows'])) {
+    if (empty($layout['rows'])) {
+        // #region agent log
+        agent_debug_log('D', 'layout/render.php', 'fallback to legacy page_sections', ['pageId' => $pageId]);
+        // #endregion
         render_page_sections($pageId);
         return;
     }
 
-    echo '<div class="layout-view layout-desktop">';
-    render_layout($desktop);
-    echo '</div>';
-    echo '<div class="layout-view layout-mobile">';
-    render_layout($mobile);
+    // #region agent log
+    agent_debug_log('B', 'layout/render.php', 'rendering single responsive layout', [
+        'pageId' => $pageId,
+        'rowCount' => count($layout['rows']),
+    ]);
+    // #endregion
+
+    echo '<div class="page-layout">';
+    render_layout($layout);
     echo '</div>';
 }
 

@@ -19,25 +19,18 @@ require ROOT . '/includes/templates/admin-header.php';
 <div class="pb-header">
     <div>
         <h1>Page Builder</h1>
-        <p class="pb-subtitle">Drag sections to reorder your homepage. Each block matches a section on the live site. Use <strong>Desktop</strong> and <strong>Mobile</strong> tabs for separate layouts.</p>
+        <p class="pb-subtitle">Build your single-page homepage. Drag sections to reorder — Hero, Menu, Story, Gallery, and more. The live site uses one scrollable page that adapts to mobile automatically.</p>
     </div>
     <div class="pb-header-actions">
         <a href="/" target="_blank" class="btn btn-outline btn-sm">View Live Site</a>
-        <button type="button" id="reset-mobile-btn" class="btn btn-outline btn-sm" title="Stack all desktop sections vertically for mobile">Reset Mobile from Desktop</button>
         <button type="button" id="save-layout-btn" class="btn btn-success">Save Page</button>
     </div>
 </div>
 
-<div class="pb-viewport-tabs">
-    <button type="button" class="pb-viewport-tab active" data-viewport="desktop">Desktop</button>
-    <button type="button" class="pb-viewport-tab" data-viewport="mobile">Mobile</button>
-</div>
-<div id="pb-viewport-notice" class="pb-viewport-notice" hidden></div>
-
 <div class="pb-layout">
     <aside class="pb-palette">
         <h3>Page Sections</h3>
-        <p class="pb-palette-hint">Click to add a full-width section</p>
+        <p class="pb-palette-hint">Click to add a section to your homepage</p>
         <div id="palette-modules" class="pb-palette-list"></div>
         <hr>
         <h3>Basic Blocks</h3>

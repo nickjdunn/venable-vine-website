@@ -1,5 +1,45 @@
 <?php
 
+function resolve_public_root(string $root): string
+{
+    $docRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+    if ($docRoot !== '' && is_dir($docRoot)) {
+        return rtrim(realpath($docRoot) ?: $docRoot, '/\\');
+    }
+    if (is_dir($root . '/public_html')) {
+        return $root . '/public_html';
+    }
+    return $root . '/public';
+}
+
+function paths_match(string $a, string $b): bool
+{
+    if ($a === '' || $b === '') {
+        return false;
+    }
+    $ra = realpath($a);
+    $rb = realpath($b);
+    return $ra && $rb && $ra === $rb;
+}
+
+/** Debug-mode NDJSON log (session 684396). */
+function agent_debug_log(string $hypothesisId, string $location, string $message, array $data = []): void
+{
+    $entry = json_encode([
+        'sessionId' => '684396',
+        'hypothesisId' => $hypothesisId,
+        'location' => $location,
+        'message' => $message,
+        'data' => $data,
+        'timestamp' => (int) round(microtime(true) * 1000),
+    ], JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+    if (!$entry) {
+        return;
+    }
+    $logFile = ROOT . '/debug-684396.log';
+    @file_put_contents($logFile, $entry . PHP_EOL, FILE_APPEND | LOCK_EX);
+}
+
 function app_config(string $key, mixed $default = null): mixed
 {
     static $config = null;
@@ -136,7 +176,6 @@ function media_picker_field(string $name, ?string $value = '', string $label = '
             <img src="<?= e($url) ?>" alt="" data-media-preview>
         </div>
         <div class="media-picker-actions">
-            <button type="button" class="btn btn-sm" data-media-select>Select Image</button>
             <button type="button" class="btn btn-sm btn-outline" data-media-upload>Upload Image</button>
             <button type="button" class="btn btn-sm btn-muted" data-media-clear<?= !$value ? ' style="display:none"' : '' ?>>Clear</button>
         </div>
