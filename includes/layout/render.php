@@ -5,7 +5,8 @@ require_once ROOT . '/includes/blocks/render.php';
 function render_page_layout(int $pageId): void
 {
     PageRepository::ensureLayoutsPersisted($pageId);
-    $layout = PageRepository::getLayout($pageId, 'desktop');
+    $desktop = PageRepository::getLayout($pageId, 'desktop');
+    $layout = mobile_layout_from_layout($desktop);
 
     if (empty($layout['rows'])) {
         // #region agent log

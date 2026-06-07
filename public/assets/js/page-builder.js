@@ -4,42 +4,96 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusEl = document.getElementById('pb-status');
     const saveBtn = document.getElementById('save-layout-btn');
 
+    if (!canvas) {
+        // #region agent log
+        clientLog('D', 'pb-canvas element missing on DOMContentLoaded');
+        // #endregion
+        return;
+    }
+
     let pageLayout = { rows: [] };
     let builderData = {};
     let selected = null;
     let rowSortable = null;
+    let idCounter = 1;
 
-    uid.counter = 1;
-    function uid(prefix) { return `${prefix}_${Date.now()}_${uid.counter++}`; }
+    function uid(prefix) {
+        return `${prefix}_${Date.now()}_${idCounter++}`;
+    }
 
-    function debugIngest(hypothesisId, message, data = {}) {
+    function clientLog(hypothesisId, message, data = {}) {
         // #region agent log
         fetch('http://127.0.0.1:7709/ingest/55c5d319-00f7-40e2-8cfc-95a4896d60d5', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '684396' },
             body: JSON.stringify({ sessionId: '684396', hypothesisId, location: 'page-builder.js', message, data, timestamp: Date.now() }),
         }).catch(() => {});
+        if (window.CSRF_TOKEN) {
+            fetch('/api/admin-log.php', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({
+                    message: 'PB: ' + message,
+                    page: window.location.pathname,
+                    hypothesisId,
+                    data,
+                    _csrf: window.CSRF_TOKEN,
+                }),
+            }).catch(() => {});
+        }
         // #endregion
+    }
+
+    function normalizeClientLayout(layout) {
+        const rows = (layout?.rows || []).map((row) => {
+            const copy = {
+                id: row.id || uid('row'),
+                layout: row.layout === 'columns' ? 'columns' : 'full',
+                columns: Array.isArray(row.columns) ? row.columns.map((col) => ({
+                    id: col.id || uid('col'),
+                    blocks: Array.isArray(col.blocks) ? col.blocks : [],
+                })) : [{ id: uid('col'), blocks: [] }],
+            };
+            if (!copy.columns.length) {
+                copy.columns = [{ id: uid('col'), blocks: [] }];
+            }
+            return copy;
+        });
+        return { rows };
+    }
+
+    function applyBuilderData(data) {
+        builderData = data || {};
+        const src = data.layout?.rows?.length
+            ? data.layout
+            : (data.layout_desktop?.rows?.length ? data.layout_desktop : { rows: [] });
+        pageLayout = normalizeClientLayout(src);
+        clientLog('C', 'applyBuilderData', {
+            rows: pageLayout.rows.length,
+            modules: Object.keys(builderData.block_types?.modules || {}).length,
+            basic: Object.keys(builderData.block_types?.basic || {}).length,
+        });
+        renderPalette();
+        renderCanvas();
     }
 
     async function load() {
         try {
-            debugIngest('C', 'load start', {});
-            const { data } = await apiFetch('/api/page-builder.php?action=get_builder_data');
-            builderData = data;
-            if (!builderData.success) {
-                showLoadError(builderData.message || 'Load failed');
-                debugIngest('C', 'load failed', { message: builderData.message });
+            clientLog('C', 'load start', { hasInitial: !!(window.PB_INITIAL && window.PB_INITIAL.success) });
+            if (window.PB_INITIAL && window.PB_INITIAL.success) {
+                applyBuilderData(window.PB_INITIAL);
                 return;
             }
-            pageLayout = builderData.layout?.rows?.length
-                ? builderData.layout
-                : (builderData.layout_desktop?.rows?.length ? builderData.layout_desktop : { rows: [] });
-            debugIngest('C', 'load success', { rows: pageLayout.rows?.length || 0 });
-            renderPalette();
-            renderCanvas();
+            const { data } = await apiFetch('/api/page-builder.php?action=get_builder_data');
+            if (!data.success) {
+                showLoadError(data.message || 'Load failed');
+                clientLog('C', 'load failed', { message: data.message });
+                return;
+            }
+            applyBuilderData(data);
         } catch (err) {
-            debugIngest('C', 'load exception', { error: err.message });
+            clientLog('C', 'load exception', { error: err.message });
             showLoadError(err.message || 'Could not load page builder');
         }
     }
@@ -143,6 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPalette() {
         const basic = document.getElementById('palette-basic');
         const modules = document.getElementById('palette-modules');
+        if (!basic || !modules) {
+            clientLog('D', 'palette containers missing');
+            return;
+        }
         basic.innerHTML = '';
         modules.innerHTML = '';
         Object.entries(builderData.block_types?.modules || {}).forEach(([type, label]) => {
@@ -186,8 +244,19 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.innerHTML = '<div class="pb-empty"><p>Add page sections from the left panel to build your homepage.</p></div>';
             return;
         }
-        pageLayout.rows.forEach((row, rowIndex) => canvas.appendChild(renderRow(row, rowIndex)));
-        if (typeof Sortable !== 'undefined') {
+        let rendered = 0;
+        pageLayout.rows.forEach((row, rowIndex) => {
+            try {
+                canvas.appendChild(renderRow(row, rowIndex));
+                rendered++;
+            } catch (err) {
+                clientLog('A', 'renderRow failed', { rowIndex, error: err.message, rowLayout: row.layout });
+            }
+        });
+        clientLog('A', 'renderCanvas done', { total: pageLayout.rows.length, rendered });
+        if (rendered === 0) {
+            canvas.innerHTML = '<div class="pb-empty"><p>Could not render page sections. Open <a href="/admin/debug.php">Debug</a> for details.</p></div>';
+        } else if (typeof Sortable !== 'undefined') {
             rowSortable = Sortable.create(canvas, {
                 handle: '.pb-row-handle',
                 animation: 150,
@@ -202,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRow(row, rowIndex) {
         const isFull = row.layout !== 'columns';
+        const columns = Array.isArray(row.columns) ? row.columns : [{ id: uid('col'), blocks: [] }];
         const rowEl = document.createElement('div');
         rowEl.className = 'pb-row' + (isFull ? ' pb-row--full' : ' pb-row--columns');
         rowEl.innerHTML = `<div class="pb-row-toolbar">
@@ -214,20 +284,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const body = document.createElement('div');
         body.className = isFull ? 'pb-section-body' : 'pb-row-cols';
         if (isFull) {
-            const col = row.columns[0];
-            if (!col.blocks.length) {
+            const col = columns[0] || { id: uid('col'), blocks: [] };
+            const blocks = Array.isArray(col.blocks) ? col.blocks : [];
+            if (!blocks.length) {
                 body.innerHTML = '<p class="pb-hint">Empty section</p>';
             } else {
-                col.blocks.forEach((block) => body.appendChild(renderSectionCard(block, row.id, col.id)));
+                blocks.forEach((block) => body.appendChild(renderSectionCard(block, row.id, col.id)));
             }
         } else {
-            row.columns.forEach((col, colIndex) => {
+            columns.forEach((col, colIndex) => {
                 const colEl = document.createElement('div');
                 colEl.className = 'pb-col';
                 colEl.innerHTML = `<div class="pb-col-label">Column ${colIndex + 1}</div>`;
                 const list = document.createElement('div');
                 list.className = 'pb-block-list';
-                col.blocks.forEach((block) => list.appendChild(renderBlockChip(block, row.id, col.id)));
+                (Array.isArray(col.blocks) ? col.blocks : []).forEach((block) => list.appendChild(renderBlockChip(block, row.id, col.id)));
                 colEl.appendChild(list);
                 body.appendChild(colEl);
                 initBlockSortable(list, row.id, col.id);
@@ -290,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
             animation: 150,
             onUpdate: (evt) => {
                 const col = findColumn(rowId, colId);
+                if (!col || !Array.isArray(col.blocks)) return;
                 const moved = col.blocks.splice(evt.oldIndex, 1)[0];
                 col.blocks.splice(evt.newIndex, 0, moved);
             },
@@ -305,11 +377,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function findColumn(rowId, colId) {
         const row = pageLayout.rows.find((r) => r.id === rowId);
-        return row.columns.find((c) => c.id === colId);
+        if (!row || !Array.isArray(row.columns)) return null;
+        return row.columns.find((c) => c.id === colId) || null;
     }
 
     function findBlock(rowId, colId, blockId) {
-        return findColumn(rowId, colId)?.blocks.find((b) => b.id === blockId);
+        const col = findColumn(rowId, colId);
+        if (!col || !Array.isArray(col.blocks)) return null;
+        return col.blocks.find((b) => b.id === blockId) || null;
     }
 
     function selectBlock(rowId, colId, blockId) {
@@ -379,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('delete-block-btn')?.addEventListener('click', () => {
             if (!confirm('Delete this block?')) return;
             const col = findColumn(rowId, colId);
+            if (!col || !Array.isArray(col.blocks)) return;
             col.blocks = col.blocks.filter((b) => b.id !== block.id);
             if (!col.blocks.length) pageLayout.rows = pageLayout.rows.filter((r) => r.id !== rowId);
             selected = null;
@@ -402,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ viewport: 'desktop', layout: pageLayout, _csrf: window.CSRF_TOKEN }),
             });
             if (!data.success) throw new Error(data.message);
-            debugIngest('C', 'save success', { rows: pageLayout.rows.length });
+            clientLog('C', 'save success', { rows: pageLayout.rows.length });
             setStatus('Homepage saved! View your live site.', 'success');
         } catch (err) {
             setStatus(err.message || 'Save failed', 'error');

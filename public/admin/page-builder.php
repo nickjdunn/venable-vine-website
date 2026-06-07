@@ -9,6 +9,25 @@ if (!$page) {
     redirect('/admin/dashboard.php');
 }
 
+$pageId = (int) $page['id'];
+PageRepository::ensureLayoutsPersisted($pageId);
+$pbLayout = normalize_layout(PageRepository::getLayout($pageId, 'desktop'));
+$pbBootstrap = [
+    'success' => true,
+    'layout' => $pbLayout,
+    'layout_desktop' => $pbLayout,
+    'block_types' => block_types(),
+    'categories' => MenuRepository::categories(false),
+    'gallery' => MediaRepository::all(),
+];
+// #region agent log
+agent_debug_log('C', 'page-builder.php:embed', 'PB_INITIAL prepared', [
+    'rows' => count($pbLayout['rows'] ?? []),
+    'modules' => count(block_types()['modules'] ?? []),
+    'basic' => count(block_types()['basic'] ?? []),
+]);
+// #endregion
+
 $extraAdminCss = [asset('css/page-builder.css')];
 $extraAdminJs = [
     'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js',
@@ -40,7 +59,7 @@ require ROOT . '/includes/templates/admin-header.php';
     </aside>
 
     <main class="pb-canvas-wrap" id="pb-canvas-wrap">
-        <div id="pb-canvas" class="pb-canvas"></div>
+        <div id="pb-canvas" class="pb-canvas"><p class="pb-hint">Loading page builder…</p></div>
         <div id="pb-status"></div>
     </main>
 
@@ -48,4 +67,5 @@ require ROOT . '/includes/templates/admin-header.php';
         <p class="pb-hint">Click a section or block to edit it here.</p>
     </aside>
 </div>
+<script>window.PB_INITIAL = <?= json_encode($pbBootstrap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE) ?>;</script>
 <?php require ROOT . '/includes/templates/admin-footer.php'; ?>

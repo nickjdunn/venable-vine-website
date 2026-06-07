@@ -99,7 +99,10 @@ function upload_url(?string $path): string
 
 function asset(string $path): string
 {
-    return '/assets/' . ltrim($path, '/');
+    $relative = ltrim($path, '/');
+    $full = PUBLIC_ROOT . '/assets/' . $relative;
+    $version = is_file($full) ? (string) filemtime($full) : (string) time();
+    return '/assets/' . $relative . '?v=' . $version;
 }
 
 function dietary_tags(): array
@@ -373,12 +376,21 @@ function normalize_layout(array $layout): array
             if (empty($columns)) {
                 $columns = [['id' => 'col_1', 'blocks' => []]];
             }
-            $columns = [array_merge(['id' => $columns[0]['id'] ?? 'col_1', 'blocks' => []], $columns[0])];
+            $col0 = $columns[0];
+            $blocks = is_array($col0['blocks'] ?? null) ? $col0['blocks'] : [];
+            $columns = [[
+                'id' => $col0['id'] ?? 'col_1',
+                'blocks' => $blocks,
+            ]];
         } else {
             while (count($columns) < 3) {
                 $columns[] = ['id' => 'col_' . (count($columns) + 1), 'blocks' => []];
             }
             $columns = array_slice($columns, 0, 3);
+            foreach ($columns as &$col) {
+                $col['blocks'] = is_array($col['blocks'] ?? null) ? $col['blocks'] : [];
+            }
+            unset($col);
         }
         $rows[] = [
             'id' => $row['id'] ?? ('row_' . uniqid()),

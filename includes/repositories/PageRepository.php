@@ -51,6 +51,21 @@ class PageRepository
                 self::saveLayout($pageId, 'desktop', $desktop);
                 $saved = true;
             }
+        } else {
+            $normalized = normalize_layout($desktop);
+            $hasColumns = false;
+            foreach ($normalized['rows'] as $row) {
+                if (($row['layout'] ?? 'full') === 'columns') {
+                    $hasColumns = true;
+                    break;
+                }
+            }
+            if ($hasColumns) {
+                $stacked = mobile_layout_from_layout($normalized);
+                self::saveLayout($pageId, 'desktop', $stacked);
+                self::saveLayout($pageId, 'mobile', $stacked);
+                $saved = true;
+            }
         }
         $mobile = self::getStoredLayout($pageId, 'mobile');
         if (empty($mobile['rows'])) {

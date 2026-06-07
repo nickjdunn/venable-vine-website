@@ -20,6 +20,12 @@ try {
         'stack' => $payload['stack'] ?? '',
         'page' => $payload['page'] ?? '',
     ]);
+    // #region agent log
+    agent_debug_log($payload['hypothesisId'] ?? 'C', 'admin-log.php', $message, [
+        'page' => $payload['page'] ?? '',
+        'data' => $payload['data'] ?? null,
+    ]);
+    // #endregion
     json_response(['success' => true]);
 } catch (Throwable $e) {
     Logger::exception($e, ['context' => 'admin_log_api']);
